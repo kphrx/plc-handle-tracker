@@ -1,0 +1,11 @@
+{
+	"dockerComposeFile": [
+		"../compose.yml",
+		"compose.yml"
+	],
+	"service": "development",
+	"workspaceFolder": "/workspace",
+	"shutdownAction": "stopCompose",
+	"forwardPorts": [],
+	"customizations": {}
+}

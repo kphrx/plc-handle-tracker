@@ -1,0 +1,7 @@
+version: '3'
+services:
+  development:
+    image: ghcr.io/kphrx/plc-handle-tracker:devcontainer
+    volumes:
+    - .:/workspace:cached
+    command: /bin/sh -c "while sleep 1000; do :; done"

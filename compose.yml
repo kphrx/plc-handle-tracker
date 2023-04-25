@@ -1,0 +1,12 @@
+version: '3'
+services:
+  db:
+    image: postgres:15-alpine
+    restart: always
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+    volumes:
+      - "db:/var/lib/postgresql/data"
+
+volumes:
+  db:
