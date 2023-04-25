@@ -6,6 +6,6 @@
 	"service": "development",
 	"workspaceFolder": "/workspace",
 	"shutdownAction": "stopCompose",
-	"forwardPorts": [],
+	"forwardPorts": [8080],
 	"customizations": {}
 }

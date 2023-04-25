@@ -1,0 +1,14 @@
+.swiftpm/
+.build/
+
+.git/
+.gitignore
+
+.devcontainer/
+.github/
+
+.dockerignore
+Dockerfile
+
+*.md
+LICENSE
