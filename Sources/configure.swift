@@ -18,6 +18,8 @@ public func configure(_ app: Application) async throws {
       database: Environment.get("DATABASE_NAME") ?? "vapor_database"
     ), as: .psql)
 
+  migrations(app)
+
   app.views.use(.leaf)
 
   // register routes
