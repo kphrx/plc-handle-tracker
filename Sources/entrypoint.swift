@@ -30,6 +30,10 @@ enum Entrypoint {
     defer { app.shutdown() }
 
     try await configure(app)
-    try await app.runFromAsyncMainEntrypoint()
+    do {
+      try await app.runFromAsyncMainEntrypoint()
+    } catch {
+      exit(1)
+    }
   }
 }
