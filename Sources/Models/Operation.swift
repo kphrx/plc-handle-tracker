@@ -25,17 +25,17 @@ final class Operation: Model, Content {
   @Children(for: \.$prev)
   var nexts: [Operation]
 
-  @Parent(key: "handle")
-  var handle: Handle
+  @OptionalParent(key: "handle")
+  var handle: Handle?
 
-  @Parent(key: "pds")
-  var pds: PersonalDataServer
+  @OptionalParent(key: "pds")
+  var pds: PersonalDataServer?
 
   init() {}
 
   init(
     id: UUID? = nil, cid: String, did: Did, nullified: Bool, createdAt: Date,
-    prev: Operation? = nil, handle: Handle, pds: PersonalDataServer
+    prev: Operation? = nil, handle: Handle? = nil, pds: PersonalDataServer? = nil
   ) throws {
     self.id = id
     self.cid = cid
@@ -43,7 +43,7 @@ final class Operation: Model, Content {
     self.nullified = nullified
     self.createdAt = createdAt
     self.$prev.id = try prev?.requireID()
-    self.$handle.id = try handle.requireID()
-    self.$pds.id = try pds.requireID()
+    self.$handle.id = try handle?.requireID()
+    self.$pds.id = try pds?.requireID()
   }
 }
