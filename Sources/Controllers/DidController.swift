@@ -22,6 +22,11 @@ struct DidController: RouteCollection {
       throw Abort(.badRequest, reason: "Invalid DID Placeholder")
     }
     guard let didPlc = try await Did.query(on: req.db).filter(\.$did == did).first() else {
+      do {
+        try await req.queue.dispatch(FetchDidJob.self, did)
+      } catch {
+        req.logger.report(error: error)
+      }
       throw Abort(.notFound)
     }
     return didPlc
