@@ -1,7 +1,8 @@
 version: '3'
 
 x-shared_environment: &shared_environment
-  LOG_LEVEL: debug
+  LOG_LEVEL: info
+  REDIS_URL: redis://redis:6379
   DATABASE_HOST: db
   DATABASE_NAME: vapor_database
   DATABASE_USERNAME: vapor_username
@@ -12,13 +13,15 @@ services:
     image: ghcr.io/kphrx/plc-handle-tracker:latest
     build:
       context: .
-    depends_on:
-      - db
     environment:
       <<: *shared_environment
+    depends_on:
+      - db
+      - redis
     ports:
       - '8080:8080'
     command: ["serve", "--env", "production", "--hostname", "0.0.0.0", "--port", "8080"]
+
   migrate:
     image: ghcr.io/kphrx/plc-handle-tracker:latest
     build:
@@ -42,11 +45,42 @@ services:
     deploy:
       replicas: 0
 
+  default_worker:
+    image: ghcr.io/kphrx/plc-handle-tracker:latest
+    build:
+      context: .
+    environment:
+      <<: *shared_environment
+    depends_on:
+      - db
+      - redis
+    command: ["queues"]
+  # named_worker:
+  #   image: ghcr.io/kphrx/plc-handle-tracker:latest
+  #   build:
+  #     context: .
+  #   environment:
+  #     <<: *shared_environment
+  #   depends_on:
+  #     - db
+  #     - redis
+  #   command: ["queues", "--queue", "named"]
+  # schedule_worker:
+  #   image: ghcr.io/kphrx/plc-handle-tracker:latest
+  #   build:
+  #     context: .
+  #   environment:
+  #     <<: *shared_environment
+  #   depends_on:
+  #     - db
+  #     - redis
+  #   command: ["queues", "--scheduled"]
+
   db:
     image: postgres:15-alpine
     restart: always
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres"]
+      test: ["CMD", "pg_isready", "-U", "vapor_username", "-d", "vapor_database"]
     volumes:
       - "db_data:/var/lib/postgresql/data/pgdata"
     environment:
@@ -55,5 +89,14 @@ services:
       POSTGRES_PASSWORD: vapor_password
       POSTGRES_DB: vapor_database
 
+  redis:
+    image: redis:7-alpine
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+    volumes:
+      - "redis_data:/data"
+
 volumes:
   db_data:
+  redis_data:

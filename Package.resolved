@@ -100,6 +100,42 @@
       }
     },
     {
+      "identity" : "queues",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/vapor/queues.git",
+      "state" : {
+        "revision" : "f1adaf4c925eb7074a4acf363172c1fa6ec888c8",
+        "version" : "1.12.1"
+      }
+    },
+    {
+      "identity" : "queues-redis-driver",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/vapor/queues-redis-driver.git",
+      "state" : {
+        "revision" : "5e42bcd7632ba5832e49e69698ba8bea26f40f51",
+        "version" : "1.0.4"
+      }
+    },
+    {
+      "identity" : "redis",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/vapor/redis.git",
+      "state" : {
+        "revision" : "d24cad79b1bf83b8d83d4d565dda4911b076842b",
+        "version" : "4.8.0"
+      }
+    },
+    {
+      "identity" : "redistack",
+      "kind" : "remoteSourceControl",
+      "location" : "https://gitlab.com/mordil/RediStack.git",
+      "state" : {
+        "revision" : "254e3e78b32b2f332e6c8f010f5b8a92646c4632",
+        "version" : "1.3.2"
+      }
+    },
+    {
       "identity" : "routing-kit",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/vapor/routing-kit.git",
