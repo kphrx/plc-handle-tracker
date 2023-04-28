@@ -204,15 +204,3 @@ struct ExportedOperation: Decodable {
     return operation
   }
 }
-
-extension KeyedDecodingContainer {
-  func decode(_ type: Date.Type, forKey key: Key) throws -> Date {
-    let dateString = try self.decode(String.self, forKey: key)
-    let dateFormatter = ISO8601DateFormatter()
-    dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-    guard let date = dateFormatter.date(from: dateString) else {
-      throw "Invalid Date String"
-    }
-    return date
-  }
-}
