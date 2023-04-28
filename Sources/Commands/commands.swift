@@ -1,5 +1,5 @@
 import Vapor
 
 func commands(_ app: Application) {
-  app.commands.use(ImportAuditableLogCommand(), as: "import")
+  app.commands.use(ImportDidCommand(), as: "import")
 }

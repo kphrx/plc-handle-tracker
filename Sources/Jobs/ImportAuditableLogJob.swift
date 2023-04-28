@@ -7,6 +7,9 @@ struct ImportAuditableLogJob: AsyncJob {
   typealias Payload = String
 
   func dequeue(_ context: QueueContext, _ payload: Payload) async throws {
+    if !validateDidPlaceholder(payload) {
+      throw "Invalid DID Placeholder"
+    }
     let app = context.application
     let response = try await app.client.get("https://plc.directory/\(payload)/log/audit")
     let json = try response.content.decode([ExportedOperation].self)
