@@ -1,10 +1,10 @@
-name: Docker
+name: Build Development Containers Image
 
 on:
   push:
     branches: [ master ]
     paths:
-      - ".github/workflows/docker.yml"
+      - ".github/workflows/devcontainer.yml"
       - ".devcontainer/Dockerfile"
   schedule:
     - cron: '30 4 * * 1'
@@ -15,7 +15,7 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: ${{ github.repository }}-devcontainer
 
 
 jobs:
@@ -44,7 +44,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=devcontainer
+            type=raw,value=latest
 
       - name: Build builder Docker image
         id: builder
