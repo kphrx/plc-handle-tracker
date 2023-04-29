@@ -1,4 +1,5 @@
 import Fluent
+import FluentPostgresDriver
 import Foundation
 import Vapor
 
@@ -166,7 +167,13 @@ struct ExportedOperation: Decodable {
   func resolve(did string: String, on database: Database) async throws -> Did {
     guard let did = try await Did.query(on: database).filter(\.$did == string).first() else {
       let did = Did(did: string)
-      try await did.create(on: database)
+      do {
+        try await did.create(on: database)
+      } catch let error as PostgresError where error.code == .uniqueViolation {
+        return try await self.resolve(did: string, on: database)
+      } catch {
+        throw error
+      }
       return did
     }
     return did
@@ -176,7 +183,13 @@ struct ExportedOperation: Decodable {
     guard let handle = try await Handle.query(on: database).filter(\.$handle == string).first()
     else {
       let handle = Handle(handle: string)
-      try await handle.create(on: database)
+      do {
+        try await handle.create(on: database)
+      } catch let error as PostgresError where error.code == .uniqueViolation {
+        return try await self.resolve(handle: string, on: database)
+      } catch {
+        throw error
+      }
       return handle
     }
     return handle
@@ -190,7 +203,13 @@ struct ExportedOperation: Decodable {
         .first()
     else {
       let service = PersonalDataServer(endpoint: string)
-      try await service.create(on: database)
+      do {
+        try await service.create(on: database)
+      } catch let error as PostgresError where error.code == .uniqueViolation {
+        return try await self.resolve(serviceEndpoint: string, on: database)
+      } catch {
+        throw error
+      }
       return service
     }
     return service
