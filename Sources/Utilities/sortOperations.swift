@@ -19,3 +19,7 @@ func sortById(op operations: [Operation]) throws -> [Operation] {
   }
   return result
 }
+
+func sortByCreatedAt(op operations: [Operation]) -> [Operation] {
+  return mergeSort(operations)
+}
