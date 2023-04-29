@@ -13,4 +13,4 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive  \
 
 USER ${USERNAME}
 
-WORKDIR /workspace
+WORKDIR /workspaces
