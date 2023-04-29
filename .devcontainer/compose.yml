@@ -3,5 +3,25 @@ services:
   development:
     image: ghcr.io/kphrx/plc-handle-tracker:devcontainer
     volumes:
-    - .:/workspace:cached
+    - ..:/workspace:cached
     command: /bin/sh -c "while sleep 1000; do :; done"
+
+  db:
+    image: postgres:15-alpine
+    restart: always
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "vapor_username", "-d", "vapor_database"]
+    environment:
+      POSTGRES_USER: vapor_username
+      POSTGRES_PASSWORD: vapor_password
+      POSTGRES_DB: vapor_database
+    ports:
+      - '5432:5432'
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+    ports:
+      - '6379:6379'
