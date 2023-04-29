@@ -57,14 +57,17 @@ struct HandleController: RouteCollection {
       throw Abort(.notFound)
     }
     let operations = try sortByCreatedAt(op: handle.operations).compactMap {
-      operation throws -> HandleResponse.UpdateHandleOperation? in
-      let didOps = try onlyUpdateHandle(op: try sortById(op: operation.did.operations))
-      guard let since = didOps.firstIndex(where: { $0.id == operation.id }) else {
+      operation -> HandleResponse.UpdateHandleOperation? in
+      guard let didOps = try sortToTrees(op: operation.did.operations).first else {
+        throw "Broken operation tree"
+      }
+      let updateHandleOps = try onlyUpdateHandle(op: didOps)
+      guard let since = updateHandleOps.firstIndex(where: { $0.id == operation.id }) else {
         return nil
       }
       var until: Operation? = nil
-      if since < didOps.indices.last! {
-        until = didOps[since + 1]
+      if since < updateHandleOps.indices.last! {
+        until = updateHandleOps[since + 1]
       }
       return .init(
         did: operation.did.did, pds: operation.pds!.endpoint, createdAt: operation.createdAt,

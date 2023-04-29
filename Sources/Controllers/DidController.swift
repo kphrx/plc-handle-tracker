@@ -52,9 +52,12 @@ struct DidController: RouteCollection {
       }
       throw Abort(.notFound)
     }
-    let operations = try onlyUpdateHandle(op: try sortById(op: didPlc.operations))
+    guard let operations = try sortToTrees(op: didPlc.operations).first else {
+      throw "Broken operation tree"
+    }
+    let updateHandleOps = try onlyUpdateHandle(op: operations)
     let res = DidResponse(
-      did: didPlc.did, current: .init(op: operations.last), operations: operations)
+      did: didPlc.did, current: .init(op: updateHandleOps.last), operations: updateHandleOps)
     return try await req.view.render("did/show", res)
   }
 }
