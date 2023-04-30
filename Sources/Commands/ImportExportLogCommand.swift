@@ -11,19 +11,18 @@ struct ImportExportLogCommand: AsyncCommand {
 
   func run(using context: CommandContext, signature: Signature) async throws {
     let app = context.application
-    let last = try await PollingHistory.query(on: app.db).sort(\.$insertedAt, .descending).with(
-      \.$operation
-    ).first()
-    let after = last.map { lastOp in
+    var after: String? = nil
+    if let last = try await PollingHistory.query(on: app.db).sort(\.$insertedAt, .descending).with(\.$operation).first() {
+      guard last.$operation.id != nil || last.isFailed else {
+        return app.logger.warning("latest polling job not completed")
+      }
       let dateFormatter = ISO8601DateFormatter()
       dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-      return dateFormatter.string(from: lastOp.createdAt)
+      after = dateFormatter.string(from: last.createdAt)
     }
     let exportedLog = try await fetchExportedLog(app, after: after)
-    async let importLog: () = app.queues.queue.dispatch(ImportExportedLogJob.self, exportedLog)
-    async let updateHistory: () = self.updateHistory(app, last: last)
-    try await importLog
-    try await updateHistory
+    let pollingHistory = try await self.logToPollingHistory(app, log: exportedLog)
+    try await app.queues.queue.dispatch(ImportExportedLogJob.self, .init(json: exportedLog, historyId: try pollingHistory.requireID()))
     if let after {
       context.console.print("Queued fetching export log, after \(after)")
     } else {
@@ -42,17 +41,14 @@ struct ImportExportLogCommand: AsyncCommand {
     return "[\(jsonLines.joined(separator: ","))]"
   }
 
-  func updateHistory(_ app: Application, last: PollingHistory?) async throws {
-    guard let last, last.$operation.id != nil else {
-      return
+  func logToPollingHistory(_ app: Application, log: String) async throws -> PollingHistory {
+    let decoder = try ContentConfiguration.global.requireDecoder(for: .json)
+    let json = try decoder.decode([ExportedOperation].self, from: .init(string: log), headers: [:])
+    guard let lastOp = json.last else {
+      throw "Empty export"
     }
-    if let opId = try await Operation.query(on: app.db).filter(\.$cid == last.cid).first()?
-      .requireID()
-    {
-      last.$operation.id = opId
-      try await last.save(on: app.db)
-    } else {
-      app.logger.warning("latest polling not stored: \(last.cid) [\(last.id?.uuidString ?? "")]")
-    }
+    let pollingHistory = try PollingHistory(cid: lastOp.cid, createdAt: lastOp.createdAt)
+    try await pollingHistory.create(on: app.db)
+    return pollingHistory
   }
 }

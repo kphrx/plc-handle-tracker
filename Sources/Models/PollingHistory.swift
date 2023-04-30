@@ -13,6 +13,12 @@ final class PollingHistory: Model, Content {
   @Field(key: "cid")
   var cid: String
 
+  @OptionalField(key: "failed")
+  var failed: Bool?
+  var isFailed: Bool {
+    self.failed ?? false
+  }
+
   @Field(key: "created_at")
   var createdAt: Date
 
@@ -25,6 +31,7 @@ final class PollingHistory: Model, Content {
     self.id = id
     self.$operation.id = try operation?.requireID()
     self.cid = cid
+    self.failed = false
     self.createdAt = createdAt
   }
 }
