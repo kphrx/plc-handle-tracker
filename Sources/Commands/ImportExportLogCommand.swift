@@ -1,10 +1,15 @@
 import Fluent
 import Foundation
-import Queues
 import Vapor
 
-struct PollingPlcServerExportJob: AsyncScheduledJob {
-  func run(context: QueueContext) async throws {
+struct ImportExportLogCommand: AsyncCommand {
+  struct Signature: CommandSignature {}
+
+  var help: String {
+    "Import from https://plc.directory/export"
+  }
+
+  func run(using context: CommandContext, signature: Signature) async throws {
     let app = context.application
     let last = try await PollingHistory.query(on: app.db).sort(\.$insertedAt, .descending).with(
       \.$operation
@@ -19,6 +24,11 @@ struct PollingPlcServerExportJob: AsyncScheduledJob {
     async let updateHistory: () = self.updateHistory(app, last: last)
     try await importLog
     try await updateHistory
+    if let after {
+      context.console.print("Queued fetching export log, after \(after)")
+    } else {
+      context.console.print("Queued fetching export log")
+    }
   }
 
   func fetchExportedLog(_ app: Application, after: String?) async throws -> String {
