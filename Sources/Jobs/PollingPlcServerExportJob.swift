@@ -7,7 +7,9 @@ struct PollingPlcServerExportJob: AsyncScheduledJob {
   func run(context: QueueContext) async throws {
     let app = context.application
     var after: String? = nil
-    if let last = try await PollingHistory.query(on: app.db).sort(\.$insertedAt, .descending).with(\.$operation).first() {
+    if let last = try await PollingHistory.query(on: app.db).sort(\.$insertedAt, .descending).with(
+      \.$operation
+    ).first() {
       guard last.$operation.id != nil || last.isFailed else {
         return app.logger.warning("latest polling job not completed")
       }
@@ -17,10 +19,19 @@ struct PollingPlcServerExportJob: AsyncScheduledJob {
     }
     let exportedLog = try await fetchExportedLog(app, after: after)
     let pollingHistory = try await self.logToPollingHistory(app, log: exportedLog)
-    try await app.queues.queue.dispatch(ImportExportedLogJob.self, .init(json: exportedLog, historyId: try pollingHistory.requireID()))
+    do {
+      try await app.queues.queue.dispatch(
+        ImportExportedLogJob.self,
+        .init(json: exportedLog, historyId: try pollingHistory.requireID())
+      )
+    } catch {
+      app.logger.report(error: error)
+      pollingHistory.failed = true
+      try await pollingHistory.save(on: app.db)
+    }
   }
 
-  func fetchExportedLog(_ app: Application, after: String?) async throws -> String {
+  private func fetchExportedLog(_ app: Application, after: String?) async throws -> String {
     var url: URI = "https://plc.directory/export"
     if let after {
       url.query = "after=\(after)"
@@ -31,7 +42,7 @@ struct PollingPlcServerExportJob: AsyncScheduledJob {
     return "[\(jsonLines.joined(separator: ","))]"
   }
 
-  func logToPollingHistory(_ app: Application, log: String) async throws -> PollingHistory {
+  private func logToPollingHistory(_ app: Application, log: String) async throws -> PollingHistory {
     let decoder = try ContentConfiguration.global.requireDecoder(for: .json)
     let json = try decoder.decode([ExportedOperation].self, from: .init(string: log), headers: [:])
     guard let lastOp = json.last else {
