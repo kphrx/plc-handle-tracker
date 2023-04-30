@@ -6,4 +6,5 @@ func migrations(_ app: Application) {
   app.migrations.add(CreateHandlesTable())
   app.migrations.add(CreatePersonalDataServersTable())
   app.migrations.add(CreateOperationsTable())
+  app.migrations.add(CreatePollingHistoryTable())
 }
