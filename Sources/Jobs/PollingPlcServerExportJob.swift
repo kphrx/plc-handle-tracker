@@ -7,10 +7,12 @@ struct PollingPlcServerExportJob: AsyncScheduledJob {
   func run(context: QueueContext) async throws {
     let app = context.application
     var after: String? = nil
-    if let last = try await PollingHistory.query(on: app.db).sort(\.$insertedAt, .descending).with(
+    if let last = try await PollingHistory.query(on: app.db).filter(\.$failed == false).sort(
+      \.$insertedAt, .descending
+    ).with(
       \.$operation
     ).first() {
-      guard last.$operation.id != nil || last.isFailed else {
+      guard last.$operation.id != nil else {
         return app.logger.warning("latest polling job not completed")
       }
       let dateFormatter = ISO8601DateFormatter()

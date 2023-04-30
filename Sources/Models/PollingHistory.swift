@@ -13,11 +13,8 @@ final class PollingHistory: Model, Content {
   @Field(key: "cid")
   var cid: String
 
-  @OptionalField(key: "failed")
-  var failed: Bool?
-  var isFailed: Bool {
-    self.failed ?? false
-  }
+  @Field(key: "failed")
+  var failed: Bool
 
   @Field(key: "created_at")
   var createdAt: Date
