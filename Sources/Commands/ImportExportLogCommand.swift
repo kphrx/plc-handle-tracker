@@ -18,7 +18,7 @@ struct ImportExportLogCommand: AsyncCommand {
       \.$operation
     ).first() {
       guard last.$operation.id != nil else {
-        return app.logger.warning("latest polling job not completed")
+        throw "latest polling job not completed"
       }
       let dateFormatter = ISO8601DateFormatter()
       dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
