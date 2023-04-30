@@ -2,22 +2,28 @@ import Fluent
 import Vapor
 
 struct DidResponse: Content {
+  struct UpdateHandleOperation: Content {
+    let handle: String?
+    let pds: String?
+    let createdAt: Date
+  }
+
   struct Current: Content {
     let handle: String
     let pds: String
 
-    init?(op operation: Operation?) {
-      guard let operation, let handle = operation.handle?.handle, let pds = operation.pds?.endpoint
-      else {
+    init?(op operation: UpdateHandleOperation?) {
+      guard let operation, let handle = operation.handle, let pds = operation.pds else {
         return nil
       }
       self.handle = handle
       self.pds = pds
     }
   }
-  let did: String
+
+  let title: String
   let current: Current?
-  let operations: [Operation]
+  let operations: [UpdateHandleOperation]
 }
 
 struct DidController: RouteCollection {
@@ -55,9 +61,14 @@ struct DidController: RouteCollection {
     guard let operations = try treeSort(didPlc.operations).first else {
       throw "Broken operation tree"
     }
-    let updateHandleOps = try onlyUpdateHandle(op: operations)
+    let updateHandleOps = try onlyUpdateHandle(op: operations).map {
+      operation -> DidResponse.UpdateHandleOperation in
+      return .init(
+        handle: operation.handle?.handle, pds: operation.pds?.endpoint,
+        createdAt: operation.createdAt)
+    }
     let res = DidResponse(
-      did: didPlc.did, current: .init(op: updateHandleOps.last), operations: updateHandleOps)
+      title: didPlc.did, current: .init(op: updateHandleOps.last), operations: updateHandleOps)
     return try await req.view.render("did/show", res)
   }
 }

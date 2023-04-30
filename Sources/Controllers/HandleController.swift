@@ -22,7 +22,7 @@ struct HandleResponse: Content {
     }
   }
 
-  let handle: String
+  let title: String
   let current: Current?
   let operations: [UpdateHandleOperation]
 }
@@ -74,7 +74,7 @@ struct HandleController: RouteCollection {
         updatedAt: until?.createdAt)
     }
     let res = HandleResponse(
-      handle: handle.handle, current: .init(op: operations.last), operations: operations)
+      title: "@\(handle.handle)", current: .init(op: operations.last), operations: operations)
     return try await req.view.render("handle/show", res)
   }
 }

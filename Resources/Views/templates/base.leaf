@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang=en>
+<head>
+  <meta charset=utf-8>
+
+  <title>
+    #if(title):
+    #(title) | @handle and did:plc Tracker
+    #else:
+    @handle and did:plc Tracker
+    #endif
+  </title>
+
+<style>
+.handle, code {
+  font-family: monospace;
+  font-size: larger;
+}
+</style
+</head>
+
+<body>
+  #if(title):
+  <header>
+    <p><span class=handle>@handle</span> and <code>did:plc</code> Tracker</p>
+  </header>
+  <main>
+    <h1>#(title)</h1>
+  #else:
+  <header>
+    <h1><span class=handle>@handle</span> and <code>did:plc</code> Tracker</h1>
+  </header>
+  <main>
+  #endif
+    #import("body")
+  </main>
+  <footer>
+    <small class=license>MIT lisenced. (c) 2023 kphrx.</small>
+  </footer>
+</body>
+</html>

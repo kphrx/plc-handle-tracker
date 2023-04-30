@@ -1,43 +1,31 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>#(did) | plc-handle-tracker</title>
-</head>
-
-<body>
-  <h1>#(did)</h1>
-  <section>
-    <h2>Info</h2>
+#extend("templates/status"):
+  #export("current_info"):
     #if(current):
     <dl>
-      <dt>Current Personal Data Server</dt>
-      <dd><a href="#(current.pds)">#(current.pds)</a></dd>
-      <dt>Current Handle</dt>
-      <dd><a href="/handle/#(current.handle)">@#(current.handle)</a></dd>
+      <dt>Personal Data Server</dt>
+      <dd><a href=#(current.pds)>#(current.pds)</a></dd>
+      <dt>Handle</dt>
+      <dd><a href=/handle/#(current.handle)>@#(current.handle)</a></dd>
     </dl>
     #else:
     <p>Tombstone</p>
     #endif
-    <table name="handle-history">
-      <caption>
-        <h3>Handle History</h3>
-      </caption>
-      <thead>
-        <tr>
-          <th>Handle</th>
-          <th>Used since</th>
-        </tr>
-      </thead>
-      <tbody>
-        #for(operation in operations):
-        <tr>
-          <th><a href="/handle/#(operation.handle.handle)">@#(operation.handle.handle)</a></dt>
-          <td>#date(operation.createdAt)</td>
-        </tr>
-        #endfor
-      </tbody>
-    </table>
-  </secton>
-</body>
-</html>
+  #endexport
+  #export("history_heading"): Handle History #endexport
+  #export("history_table_body"):
+    <thead>
+      <tr>
+        <th>Handle</th>
+        <th>Used since</th>
+      </tr>
+    </thead>
+    <tbody>
+      #for(operation in operations):
+      <tr>
+        <th>#if(operation.handle): <a href=/handle/#(operation.handle)>@#(operation.handle)</a> #endif</dt>
+        <td>#date(operation.createdAt)</td>
+      </tr>
+      #endfor
+    </tbody>
+  #endexport
+#endextend

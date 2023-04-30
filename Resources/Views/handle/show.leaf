@@ -1,47 +1,35 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>@#(handle) | plc-handle-tracker</title>
-</head>
-
-<body>
-  <h1>@#(handle)</h1>
-  <section>
-    <h2>Info</h2>
+#extend("templates/status"):
+  #export("current_info"):
     #if(current):
     <dl>
-      <dt>Current Personal Data Server</dt>
-      <dd><a href="#(current.pds)">#(current.pds)</a></dd>
-      <dt>Current DID</dt>
-      <dd><a href="/did/#(current.did)">#(current.did)</a></dd>
+      <dt>Personal Data Server</dt>
+      <dd><a href=#(current.pds)>#(current.pds)</a></dd>
+      <dt>DID</dt>
+      <dd><a href=/did/#(current.did)>#(current.did)</a></dd>
     </dl>
     #else:
     <p>Currently, not used</p>
     #endif
-    <table name="did-history">
-      <caption>
-        <h3>DID History</h3>
-      </caption>
-      <thead>
-        <tr>
-          <th>Handle</th>
-          <th>Used since</th>
-          <th>Used until</th>
-        </tr>
-      </thead>
-      <tbody>
-        #for(operation in operations):
-        <tr>
-          <th><a href="/did/#(operation.did)">#(operation.did)</a></dt>
-          <td>#date(operation.createdAt)</td>
-          #if(operation.updatedAt):
-          <td>#date(operation.updatedAt)</td>
-          #endif
-        </tr>
-        #endfor
-      </tbody>
-    </table>
-  </secton>
-</body>
-</html>
+  #endexport
+  #export("history_heading"): DID History #endexport
+  #export("history_table_body"):
+    <thead>
+      <tr>
+        <th>DID</th>
+        <th>Used since</th>
+        <th>Used until</th>
+      </tr>
+    </thead>
+    <tbody>
+      #for(operation in operations):
+      <tr>
+        <th><a href=/did/#(operation.did)>#(operation.did)</a></dt>
+        <td>#date(operation.createdAt)</td>
+        #if(operation.updatedAt):
+        <td>#date(operation.updatedAt)</td>
+        #endif
+      </tr>
+      #endfor
+    </tbody>
+  #endexport
+#endextend

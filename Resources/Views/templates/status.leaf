@@ -1,0 +1,14 @@
+#extend("templates/base"):
+  #export("body"):
+  <section name=current-info>
+    <h2>Currently Info</h2>
+    #import("current_info")
+  </section>
+  <section name=history>
+    <h2>#import("history_heading")</h2>
+    <table name=history-table>
+      #import("history_table_body")
+    </table>
+  </secton>
+  #endexport
+#endextend
