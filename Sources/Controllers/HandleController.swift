@@ -56,9 +56,9 @@ struct HandleController: RouteCollection {
     else {
       throw Abort(.notFound)
     }
-    let operations = try sortByCreatedAt(op: handle.operations).compactMap {
+    let operations = try mergeSort(handle.operations).compactMap {
       operation -> HandleResponse.UpdateHandleOperation? in
-      guard let didOps = try sortToTrees(op: operation.did.operations).first else {
+      guard let didOps = try treeSort(operation.did.operations).first else {
         throw "Broken operation tree"
       }
       let updateHandleOps = try onlyUpdateHandle(op: didOps)

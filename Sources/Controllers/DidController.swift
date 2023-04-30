@@ -52,7 +52,7 @@ struct DidController: RouteCollection {
       }
       throw Abort(.notFound)
     }
-    guard let operations = try sortToTrees(op: didPlc.operations).first else {
+    guard let operations = try treeSort(didPlc.operations).first else {
       throw "Broken operation tree"
     }
     let updateHandleOps = try onlyUpdateHandle(op: operations)
