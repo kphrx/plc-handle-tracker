@@ -47,7 +47,11 @@ public func configure(_ app: Application) async throws {
     ), as: .psql)
   migrations(app)
 
-  try app.queues.use(.redis(url: Environment.get("REDIS_URL") ?? "redis://localhost:6379"))
+  try app.queues.use(
+    .redis(
+      .init(
+        url: Environment.get("REDIS_URL") ?? "redis://localhost:6379",
+        pool: .init(connectionRetryTimeout: .seconds(60)))))
   // register jobs
   jobs(app)
 
