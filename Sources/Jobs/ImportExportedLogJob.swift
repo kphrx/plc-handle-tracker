@@ -4,25 +4,13 @@ import Queues
 import Vapor
 
 struct ImportExportedLogJob: AsyncJob {
-  typealias Payload = Date?
+  typealias Payload = String
 
   func dequeue(_ context: QueueContext, _ payload: Payload) async throws {
-    var url: URI = "https://plc.directory/export"
-    if let payload {
-      let dateFormatter = ISO8601DateFormatter()
-      dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-      url.query = "after=\(dateFormatter.string(from: payload))"
-    }
     let app = context.application
-    let response = try await app.client.get(url)
-    let textDecoder = try ContentConfiguration.global.requireDecoder(for: .plainText)
-    let jsonDecoder = try ContentConfiguration.global.requireDecoder(for: .json)
-    let jsonLines = try response.content.decode(String.self, using: textDecoder).split(separator: "\n").joined(separator: ",")
-    let json = try jsonDecoder.decode(
-      [ExportedOperation].self,
-      from: .init(string: "[\(jsonLines)]"),
-      headers: [:]
-    )
+    let decoder = try ContentConfiguration.global.requireDecoder(for: .json)
+    let json = try decoder.decode(
+      [ExportedOperation].self, from: .init(string: payload), headers: [:])
     guard let lastOp = json.last else {
       throw "Empty export"
     }
