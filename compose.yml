@@ -11,8 +11,8 @@ x-shared_environment: &shared_environment
 services:
   app:
     image: ghcr.io/kphrx/plc-handle-tracker:latest
-    build:
-      context: .
+    # build:
+    #   context: .
     environment:
       <<: *shared_environment
     depends_on:
@@ -24,8 +24,6 @@ services:
 
   migrate:
     image: ghcr.io/kphrx/plc-handle-tracker:latest
-    build:
-      context: .
     environment:
       <<: *shared_environment
     depends_on:
@@ -35,8 +33,6 @@ services:
       replicas: 0
   revert:
     image: ghcr.io/kphrx/plc-handle-tracker:latest
-    build:
-      context: .
     environment:
       <<: *shared_environment
     depends_on:
@@ -47,8 +43,6 @@ services:
 
   default_worker:
     image: ghcr.io/kphrx/plc-handle-tracker:latest
-    build:
-      context: .
     environment:
       <<: *shared_environment
     depends_on:
@@ -57,24 +51,20 @@ services:
     command: ["queues"]
   # named_worker:
   #   image: ghcr.io/kphrx/plc-handle-tracker:latest
-  #   build:
-  #     context: .
   #   environment:
   #     <<: *shared_environment
   #   depends_on:
   #     - db
   #     - redis
   #   command: ["queues", "--queue", "named"]
-  # schedule_worker:
-  #   image: ghcr.io/kphrx/plc-handle-tracker:latest
-  #   build:
-  #     context: .
-  #   environment:
-  #     <<: *shared_environment
-  #   depends_on:
-  #     - db
-  #     - redis
-  #   command: ["queues", "--scheduled"]
+  schedule_worker:
+    image: ghcr.io/kphrx/plc-handle-tracker:latest
+    environment:
+      <<: *shared_environment
+    depends_on:
+      - db
+      - redis
+    command: ["queues", "--scheduled"]
 
   db:
     image: postgres:15-alpine
