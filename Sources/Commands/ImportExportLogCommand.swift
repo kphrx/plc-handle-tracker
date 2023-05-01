@@ -3,7 +3,10 @@ import Foundation
 import Vapor
 
 struct ImportExportLogCommand: AsyncCommand {
-  struct Signature: CommandSignature {}
+  struct Signature: CommandSignature {
+    @Option(name: "count", short: nil)
+    var count: UInt?
+  }
 
   var help: String {
     "Import from https://plc.directory/export"
@@ -24,7 +27,8 @@ struct ImportExportLogCommand: AsyncCommand {
       dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
       after = dateFormatter.string(from: last.createdAt)
     }
-    let (exportedLog, lastOp) = try await fetchExportedLog(app, after: after)
+    let (exportedLog, lastOp) = try await fetchExportedLog(
+      app, after: after, count: signature.count ?? 1000)
     let pollingHistory = try await self.logToPollingHistory(app, lastOp: lastOp)
     do {
       try await app.queues.queue.dispatch(
@@ -43,19 +47,22 @@ struct ImportExportLogCommand: AsyncCommand {
     }
   }
 
-  private func fetchExportedLog(_ app: Application, after: String?) async throws
+  private func fetchExportedLog(_ app: Application, after: String?, count: UInt) async throws
     -> (String, ExportedOperation?)
   {
     var url: URI = "https://plc.directory/export"
     if let after {
-      url.query = "after=\(after)"
+      url.query = "count=\(count)&after=\(after)"
+    } else {
+      url.query = "count=\(count)"
     }
     let response = try await app.client.get(url)
     let decoder = try ContentConfiguration.global.requireDecoder(for: .plainText)
     let jsonLines = try response.content.decode(String.self, using: decoder).split(separator: "\n")
     let json = try jsonLines.last.map { lastOp throws in
       let decoder = try ContentConfiguration.global.requireDecoder(for: .json)
-      return try decoder.decode(ExportedOperation.self, from: .init(string: String(lastOp)), headers: [:])
+      return try decoder.decode(
+        ExportedOperation.self, from: .init(string: String(lastOp)), headers: [:])
     }
     return ("[\(jsonLines.joined(separator: ","))]", json)
   }
