@@ -9,10 +9,8 @@ struct PollingPlcServerExportJob: AsyncScheduledJob {
     var after: String? = nil
     if let last = try await PollingHistory.query(on: app.db).filter(\.$failed == false).sort(
       \.$insertedAt, .descending
-    ).with(
-      \.$operation
     ).first() {
-      guard last.$operation.id != nil else {
+      guard last.completed else {
         return app.logger.warning("latest polling job not completed")
       }
       let dateFormatter = ISO8601DateFormatter()
@@ -45,7 +43,8 @@ struct PollingPlcServerExportJob: AsyncScheduledJob {
     let jsonLines = try response.content.decode(String.self, using: decoder).split(separator: "\n")
     let json = try jsonLines.last.map { lastOp throws in
       let decoder = try ContentConfiguration.global.requireDecoder(for: .json)
-      return try decoder.decode(ExportedOperation.self, from: .init(string: String(lastOp)), headers: [:])
+      return try decoder.decode(
+        ExportedOperation.self, from: .init(string: String(lastOp)), headers: [:])
     }
     return ("[\(jsonLines.joined(separator: ","))]", json)
   }

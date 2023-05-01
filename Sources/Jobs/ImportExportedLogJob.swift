@@ -39,14 +39,8 @@ struct ImportExportedLogJob: AsyncJob {
     guard let last = try await PollingHistory.find(historyId, on: app.db) else {
       return
     }
-    if let opId = try await Operation.query(on: app.db).filter(\.$cid == last.cid).first()?
-      .requireID()
-    {
-      last.$operation.id = opId
-      try await last.save(on: app.db)
-    } else {
-      app.logger.warning("latest polling not stored: \(last.cid) [\(last.id?.uuidString ?? "")]")
-    }
+    last.completed = true
+    try await last.update(on: app.db)
   }
 
   func error(_ context: QueueContext, _ error: Error, _ payload: Payload) async throws {
@@ -57,6 +51,6 @@ struct ImportExportedLogJob: AsyncJob {
       return
     }
     last.failed = true
-    try await last.save(on: app.db)
+    try await last.update(on: app.db)
   }
 }

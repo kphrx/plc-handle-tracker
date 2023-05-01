@@ -8,4 +8,5 @@ func migrations(_ app: Application) {
   app.migrations.add(CreateOperationsTable())
   app.migrations.add(CreatePollingHistoryTable())
   app.migrations.add(AddFailedColumnToPollingHistoryTable())
+  app.migrations.add(AddCompletedColumnToPollingHistoryTable())
 }

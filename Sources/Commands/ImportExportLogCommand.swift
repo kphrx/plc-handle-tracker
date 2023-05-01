@@ -17,10 +17,8 @@ struct ImportExportLogCommand: AsyncCommand {
     var after: String? = nil
     if let last = try await PollingHistory.query(on: app.db).filter(\.$failed == false).sort(
       \.$insertedAt, .descending
-    ).with(
-      \.$operation
     ).first() {
-      guard last.$operation.id != nil else {
+      guard last.completed else {
         throw "latest polling job not completed"
       }
       let dateFormatter = ISO8601DateFormatter()
@@ -43,7 +41,7 @@ struct ImportExportLogCommand: AsyncCommand {
     } catch {
       app.logger.report(error: error)
       pollingHistory.failed = true
-      try await pollingHistory.save(on: app.db)
+      try await pollingHistory.update(on: app.db)
     }
   }
 

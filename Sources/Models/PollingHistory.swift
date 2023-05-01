@@ -7,11 +7,11 @@ final class PollingHistory: Model, Content {
   @ID(key: .id)
   var id: UUID?
 
-  @OptionalParent(key: "operation")
-  var operation: Operation?
-
   @Field(key: "cid")
   var cid: String
+
+  @Field(key: "completed")
+  var completed: Bool
 
   @Field(key: "failed")
   var failed: Bool
@@ -24,10 +24,10 @@ final class PollingHistory: Model, Content {
 
   init() {}
 
-  init(id: UUID? = nil, op operation: Operation? = nil, cid: String, createdAt: Date) throws {
+  init(id: UUID? = nil, cid: String, createdAt: Date) {
     self.id = id
-    self.$operation.id = try operation?.requireID()
     self.cid = cid
+    self.completed = false
     self.failed = false
     self.createdAt = createdAt
   }
