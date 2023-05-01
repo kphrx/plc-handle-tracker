@@ -1,0 +1,8 @@
+#extend("templates/base"):
+  #export("body"):
+  <section name=error-info>
+    <p>#import("heading")</p>
+    #import("info")
+  </section>
+  #endexport
+#endextend
