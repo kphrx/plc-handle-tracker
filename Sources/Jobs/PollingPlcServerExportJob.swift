@@ -19,8 +19,8 @@ struct PollingPlcServerExportJob: AsyncScheduledJob {
       dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
       after = dateFormatter.string(from: last.createdAt)
     }
-    let exportedLog = try await fetchExportedLog(app, after: after)
-    let pollingHistory = try await self.logToPollingHistory(app, log: exportedLog)
+    let (exportedLog, lastOp) = try await fetchExportedLog(app, after: after)
+    let pollingHistory = try await self.logToPollingHistory(app, lastOp: lastOp)
     do {
       try await app.queues.queue.dispatch(
         ImportExportedLogJob.self,
@@ -33,7 +33,9 @@ struct PollingPlcServerExportJob: AsyncScheduledJob {
     }
   }
 
-  private func fetchExportedLog(_ app: Application, after: String?) async throws -> String {
+  private func fetchExportedLog(_ app: Application, after: String?) async throws
+    -> (String, ExportedOperation?)
+  {
     var url: URI = "https://plc.directory/export"
     if let after {
       url.query = "after=\(after)"
@@ -41,13 +43,17 @@ struct PollingPlcServerExportJob: AsyncScheduledJob {
     let response = try await app.client.get(url)
     let decoder = try ContentConfiguration.global.requireDecoder(for: .plainText)
     let jsonLines = try response.content.decode(String.self, using: decoder).split(separator: "\n")
-    return "[\(jsonLines.joined(separator: ","))]"
+    let json = try jsonLines.last.map { lastOp throws in
+      let decoder = try ContentConfiguration.global.requireDecoder(for: .json)
+      return try decoder.decode(ExportedOperation.self, from: .init(string: String(lastOp)), headers: [:])
+    }
+    return ("[\(jsonLines.joined(separator: ","))]", json)
   }
 
-  private func logToPollingHistory(_ app: Application, log: String) async throws -> PollingHistory {
-    let decoder = try ContentConfiguration.global.requireDecoder(for: .json)
-    let json = try decoder.decode([ExportedOperation].self, from: .init(string: log), headers: [:])
-    guard let lastOp = json.last else {
+  private func logToPollingHistory(_ app: Application, lastOp: ExportedOperation?) async throws
+    -> PollingHistory
+  {
+    guard let lastOp else {
       throw "Empty export"
     }
     let pollingHistory = try PollingHistory(cid: lastOp.cid, createdAt: lastOp.createdAt)
