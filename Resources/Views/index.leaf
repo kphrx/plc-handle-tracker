@@ -1,5 +1,37 @@
 #extend("templates/base"):
+  #export("head"):
+<style>
+dl {
+  margin: 0 auto;
+  width: max-content;
+  max-width: calc(100vw - 16px);
+}
+
+dl {
+  display: grid;
+  grid-template-columns: 24ex 1fr;
+  gap: .5rem 1rem;
+}
+dl > dt {
+  font-weight: bold;
+  text-align: right;
+}
+dl > dd {
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+</style>
+  #endexport
+
   #export("body"):
+  <dl>
+    <dt>Latest imported</dt>
+    <dd>#if(latestImported): #date(latestImported) #else: - #endif</dd>
+    <dt>Last import log</dt>
+    <dd>#if(lastImport): #date(lastImport) #else: - #endif</dd>
+  </dl>
   <p>Example <span class=did-plc>did:plc</span> page: <a href=/did/did:plc:ragtjsm2j2vknwkz3zp4oxrd>GET /did/did:plc:ragtjsm2j2vknwkz3zp4oxrd</a></p>
   <p>Example <span class=handle>@handle</span> page: <a href=/handle/paul.bsky.social>GET /handle/paul.bsky.social</a></p>
   #endexport
