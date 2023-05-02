@@ -12,23 +12,22 @@
   </title>
 
 <style>
-.handle, code {
-  font-family: monospace;
-  font-size: larger;
+.handle, .did-plc {
+  font-family: monospace, serif;
 }
-</style
+</style>
 </head>
 
 <body>
   #if(title):
   <header>
-    <p><span class=handle>@handle</span> and <code>did:plc</code> Tracker</p>
+    <p><span class=handle>@handle</span> and <span class=did-plc>did:plc</span> Tracker</p>
   </header>
   <main>
     <h1>#(title)</h1>
   #else:
   <header>
-    <h1><span class=handle>@handle</span> and <code>did:plc</code> Tracker</h1>
+    <h1><span class=handle>@handle</span> and <span class=did-plc>did:plc</span> Tracker</h1>
   </header>
   <main>
   #endif

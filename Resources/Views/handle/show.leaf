@@ -5,7 +5,7 @@
       <dt>Personal Data Server</dt>
       <dd><a href=#(current.pds)>#(current.pds)</a></dd>
       <dt>DID</dt>
-      <dd><a href=/did/#(current.did)>#(current.did)</a></dd>
+      <dd class=did-plc><a href=/did/#(current.did)>#(current.did)</a></dd>
     </dl>
     #else:
     <p>Currently, not used</p>
@@ -23,7 +23,7 @@
     <tbody>
       #for(operation in operations):
       <tr>
-        <th><a href=/did/#(operation.did)>#(operation.did)</a></dt>
+        <th class=did-plc><a href=/did/#(operation.did)>#(operation.did)</a></dt>
         <td>#date(operation.createdAt)</td>
         #if(operation.updatedAt):
         <td>#date(operation.updatedAt)</td>

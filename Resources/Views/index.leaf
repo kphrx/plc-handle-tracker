@@ -1,6 +1,6 @@
 #extend("templates/base"):
   #export("body"):
-  <p>Example <code>did:plc</code> page: <a href=/did/did:plc:ragtjsm2j2vknwkz3zp4oxrd>GET /did/did:plc:ragtjsm2j2vknwkz3zp4oxrd</a></p>
+  <p>Example <span class=did-plc>did:plc</span> page: <a href=/did/did:plc:ragtjsm2j2vknwkz3zp4oxrd>GET /did/did:plc:ragtjsm2j2vknwkz3zp4oxrd</a></p>
   <p>Example <span class=handle>@handle</span> page: <a href=/handle/paul.bsky.social>GET /handle/paul.bsky.social</a></p>
   #endexport
 #endextend
