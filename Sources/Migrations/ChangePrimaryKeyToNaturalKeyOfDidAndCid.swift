@@ -22,11 +22,9 @@ struct ChangePrimaryKeyToNaturalKeyOfDidAndCid: AsyncMigration {
       }
       try await transaction.schema("dids")
         .deleteField("id")
-        .updateField("did", .sql(raw: "VARCHAR(32)"))
         .constraint(.constraint(.compositeIdentifier([.key("did")]), name: "dids_pkey"))
         .update()
       try await transaction.schema("operations")
-        .updateField("did", .sql(raw: "VARCHAR(32)"))
         .foreignKey("did", references: "dids", "did", name: "operations_did_fkey")
         .update()
     }
