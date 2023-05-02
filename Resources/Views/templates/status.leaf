@@ -4,8 +4,14 @@
 h2 {
   margin-top: 3rem;
   margin-bottom: 1rem;
-
   font-size: 1.3rem;
+  text-align: center;
+}
+
+dl, table {
+  margin: 0 auto;
+  width: max-content;
+  max-width: calc(100vw - 16px);
 }
 
 dl {
@@ -18,10 +24,21 @@ dl > dt {
 }
 dl > dd {
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+table {
+  display: block;
+  overflow-x: auto;
+}
 th, td {
   padding: 5px;
+}
+
+tbody {
+  white-space: nowrap;
 }
 
 tbody th {

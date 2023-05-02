@@ -1,7 +1,18 @@
 #extend("templates/base"):
+  #export("head"):
+<style id=error-style>
+h2 {
+  margin-top: 3rem;
+  margin-bottom: 1rem;
+  font-size: 1.3rem;
+  text-align: center;
+}
+</style>
+  #endexport
+
   #export("body"):
   <section name=error-info>
-    <p>#import("heading")</p>
+    <h2>#import("heading")</h2>
     #import("info")
   </section>
   #endexport
