@@ -21,7 +21,7 @@
 <body>
   #if(title):
   <header>
-    <p><span class=handle>@handle</span> and <span class=did-plc>did:plc</span> Tracker</p>
+    <p><a href=/><span class=handle>@handle</span> and <span class=did-plc>did:plc</span> Tracker</a></p>
   </header>
   <main>
     <h1>#(title)</h1>
@@ -34,7 +34,7 @@
     #import("body")
   </main>
   <footer>
-    <small class=license>MIT lisenced. (c) 2023 kphrx.</small>
+    <small id=license><a rel=noopener target=_blank href=https://github.com/kphrx/plc-handle-tracker/blob/master/LICENSE>MIT lisenced</a>. (c) 2023 kphrx.</small>
   </footer>
 </body>
 </html>
