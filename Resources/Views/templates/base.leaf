@@ -2,6 +2,7 @@
 <html lang=en>
 <head>
   <meta charset=utf-8>
+  <meta name="viewport" content="width=device-width" />
 
   <title>
     #if(title):
@@ -11,23 +12,65 @@
     #endif
   </title>
 
-<style>
+<style id=base-style>
+html {
+  font-family: sans-serif;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  margin: 0;
+}
+
+body > header {
+  padding: 16px;
+}
+
+#app-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: normal;
+}
+
+#app-title > a {
+  color: currentColor;
+  text-decoration: none;
+}
+
+main {
+  flex: auto;
+  padding: 8px;
+}
+
+#page-title {
+  margin-top: 0;
+  font-size: 1.6rem;
+}
+
+body > footer {
+  padding: 16px;
+}
+
 .handle, .did-plc {
   font-family: monospace, serif;
 }
 </style>
+
+#import("head")
 </head>
 
 <body>
   #if(title):
   <header>
-    <p><a href=/><span class=handle>@handle</span> and <span class=did-plc>did:plc</span> Tracker</a></p>
+    <p id=app-title><a href=/><span class=handle>@handle</span> and <span class=did-plc>did:plc</span> Tracker</a></p>
   </header>
   <main>
-    <h1>#(title)</h1>
+    <h1 id=page-title>#(title)</h1>
   #else:
   <header>
-    <h1><span class=handle>@handle</span> and <span class=did-plc>did:plc</span> Tracker</h1>
+    <h1 id=app-title><span class=handle>@handle</span> and <span class=did-plc>did:plc</span> Tracker</h1>
   </header>
   <main>
   #endif

@@ -1,12 +1,45 @@
 #extend("templates/base"):
+  #export("head"):
+<style id=status-style>
+h2 {
+  margin-top: 3rem;
+  margin-bottom: 1rem;
+
+  font-size: 1.3rem;
+}
+
+dl {
+  display: grid;
+  grid-template-columns: 24ex 1fr;
+  gap: .5rem 1rem;
+}
+dl > dt {
+  font-weight: bold;
+}
+dl > dd {
+  margin: 0;
+}
+
+th, td {
+  padding: 5px;
+}
+
+tbody th {
+  text-align: left;
+}
+</style>
+  #endexport
+
   #export("body"):
   <section name=current-info>
     <h2>Currently Info</h2>
     #import("current_info")
   </section>
-  <section name=history>
+
+  <section name=change-history>
     <h2>#import("history_heading")</h2>
     <table name=history-table>
+      <caption>History table</caption>
       #import("history_table_body")
     </table>
   </secton>
