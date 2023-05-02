@@ -47,7 +47,7 @@ struct DidController: RouteCollection {
       throw Abort(.badRequest, reason: "Invalid DID Placeholder")
     }
     guard
-      let didPlc = try await Did.query(on: req.db).filter(\.$did == did).with(
+      let didPlc = try await Did.query(on: req.db).filter(\.$id == did).with(
         \.$operations, { operation in operation.with(\.$handle).with(\.$pds) }
       ).first()
     else {
@@ -68,7 +68,8 @@ struct DidController: RouteCollection {
         createdAt: operation.createdAt)
     }
     let res = DidResponse(
-      title: didPlc.did, current: .init(op: updateHandleOps.last), operations: updateHandleOps)
+      title: try didPlc.requireID(), current: .init(op: updateHandleOps.last),
+      operations: updateHandleOps)
     return try await req.view.render("did/show", res)
   }
 }

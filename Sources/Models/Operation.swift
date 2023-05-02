@@ -4,11 +4,8 @@ import Vapor
 final class Operation: Model, Content {
   static let schema = "operations"
 
-  @ID(key: .id)
-  var id: UUID?
-
-  @Field(key: "cid")
-  var cid: String
+  @ID(custom: "cid", generatedBy: .user)
+  var id: String?
 
   @Parent(key: "did")
   var did: Did
@@ -34,11 +31,10 @@ final class Operation: Model, Content {
   init() {}
 
   init(
-    id: UUID? = nil, cid: String, did: Did, nullified: Bool, createdAt: Date,
+    cid id: String, did: Did, nullified: Bool, createdAt: Date,
     prev: Operation? = nil, handle: Handle? = nil, pds: PersonalDataServer? = nil
   ) throws {
     self.id = id
-    self.cid = cid
     self.$did.id = try did.requireID()
     self.nullified = nullified
     self.createdAt = createdAt

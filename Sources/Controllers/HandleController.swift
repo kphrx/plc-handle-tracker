@@ -70,8 +70,8 @@ struct HandleController: RouteCollection {
         until = updateHandleOps[since + 1]
       }
       return .init(
-        did: operation.did.did, pds: operation.pds!.endpoint, createdAt: operation.createdAt,
-        updatedAt: until?.createdAt)
+        did: try operation.did.requireID(), pds: operation.pds!.endpoint,
+        createdAt: operation.createdAt, updatedAt: until?.createdAt)
     }
     let res = HandleResponse(
       title: "@\(handle.handle)", current: .init(op: operations.last), operations: operations)

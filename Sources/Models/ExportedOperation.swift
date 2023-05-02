@@ -162,7 +162,7 @@ struct ExportedOperation: Decodable {
   }
 
   func resolve(did string: String, on database: Database) async throws -> Did {
-    guard let did = try await Did.query(on: database).filter(\.$did == string).first() else {
+    guard let did = try await Did.find(string, on: database) else {
       let did = Did(did: string)
       do {
         try await did.create(on: database)
@@ -213,8 +213,7 @@ struct ExportedOperation: Decodable {
   }
 
   func resolve(prev cid: String, on database: Database) async throws -> Operation? {
-    guard let operation = try await Operation.query(on: database).filter(\.$cid == cid).first()
-    else {
+    guard let operation = try await Operation.find(cid, on: database) else {
       throw "Unknown operation"
     }
     return operation

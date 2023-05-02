@@ -27,7 +27,7 @@ struct ImportExportedLogJob: AsyncJob {
 
   private func insert(ops operations: [ExportedOperation], on database: Database) async throws {
     for exportedOp in operations {
-      if try await Operation.query(on: database).filter(\.$cid == exportedOp.cid).first() != nil {
+      if try await Operation.find(exportedOp.cid, on: database) != nil {
         continue
       }
       let operation = try await exportedOp.normalize(on: database)

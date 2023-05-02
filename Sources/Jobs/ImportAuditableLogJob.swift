@@ -14,7 +14,7 @@ struct ImportAuditableLogJob: AsyncJob {
     let response = try await app.client.get("https://plc.directory/\(payload)/log/audit")
     let json = try response.content.decode([ExportedOperation].self)
     for exportedOp in json {
-      if try await Operation.query(on: app.db).filter(\.$cid == exportedOp.cid).first() != nil {
+      if try await Operation.find(exportedOp.cid, on: app.db) != nil {
         continue
       }
       let operation = try await exportedOp.normalize(on: app.db)
