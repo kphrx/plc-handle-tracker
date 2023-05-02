@@ -21,12 +21,15 @@ dl {
 }
 dl > dt {
   font-weight: bold;
+  text-align: right;
+  grid-column-start: 1;
 }
 dl > dd {
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  grid-column-start: 2;
 }
 
 table {
@@ -43,6 +46,11 @@ tbody {
 
 tbody th {
   text-align: left;
+}
+
+tbody td {
+  min-width: 200px;
+  text-align: center;
 }
 </style>
   #endexport

@@ -24,10 +24,8 @@
       #for(operation in operations):
       <tr>
         <th class=did-plc><a href=/did/#(operation.did)>#(operation.did)</a></dt>
-        <td>#date(operation.createdAt)</td>
-        #if(operation.updatedAt):
-        <td>#date(operation.updatedAt)</td>
-        #endif
+        <td>#date(operation.createdAt, "yyyy-MM-dd HH:mm:ss z")</td>
+        <td>#if(operation.updatedAt): #date(operation.updatedAt, "yyyy-MM-dd HH:mm:ss z") #else: - #endif</td>
       </tr>
       #endfor
     </tbody>

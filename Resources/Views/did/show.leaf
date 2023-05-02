@@ -25,7 +25,7 @@
       #for(operation in operations):
       <tr>
         <th class=handle>#if(operation.handle): <a href=/handle/#(operation.handle)>@#(operation.handle)</a> #endif</dt>
-        <td>#date(operation.createdAt)</td>
+        <td>#date(operation.createdAt, "yyyy-MM-dd HH:mm:ss z")</td>
       </tr>
       #endfor
     </tbody>
