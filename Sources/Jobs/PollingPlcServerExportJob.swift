@@ -55,7 +55,7 @@ struct PollingPlcServerExportJob: AsyncScheduledJob {
     guard let lastOp else {
       throw "Empty export"
     }
-    let pollingHistory = try PollingHistory(cid: lastOp.cid, createdAt: lastOp.createdAt)
+    let pollingHistory = PollingHistory(cid: lastOp.cid, createdAt: lastOp.createdAt)
     try await pollingHistory.create(on: app.db)
     return pollingHistory
   }

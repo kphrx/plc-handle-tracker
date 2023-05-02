@@ -57,7 +57,7 @@ struct ImportExportLogCommand: AsyncCommand {
     let response = try await app.client.get(url)
     let decoder = try ContentConfiguration.global.requireDecoder(for: .plainText)
     let jsonLines = try response.content.decode(String.self, using: decoder).split(separator: "\n")
-    let json = try jsonLines.last.map { lastOp throws in
+    let json = try jsonLines.last.map { lastOp in
       let decoder = try ContentConfiguration.global.requireDecoder(for: .json)
       return try decoder.decode(
         ExportedOperation.self, from: .init(string: String(lastOp)), headers: [:])
@@ -71,7 +71,7 @@ struct ImportExportLogCommand: AsyncCommand {
     guard let lastOp else {
       throw "Empty export"
     }
-    let pollingHistory = try PollingHistory(cid: lastOp.cid, createdAt: lastOp.createdAt)
+    let pollingHistory = PollingHistory(cid: lastOp.cid, createdAt: lastOp.createdAt)
     try await pollingHistory.create(on: app.db)
     return pollingHistory
   }

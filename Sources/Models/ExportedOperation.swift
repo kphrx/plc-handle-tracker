@@ -117,7 +117,7 @@ struct ExportedOperation: Decodable {
   }
 
   func normalize(on database: Database) async throws -> Operation {
-    async let did = self.resolve(did: self.did, on: database)
+    let did = try await self.resolve(did: self.did, on: database)
     switch self.operation.type {
     case .create:
       guard let createOp = self.operation as? CreateOperation else {
@@ -126,7 +126,7 @@ struct ExportedOperation: Decodable {
       async let handle = self.resolve(handle: createOp.handle, on: database)
       async let pds = self.resolve(serviceEndpoint: createOp.service, on: database)
       return try Operation(
-        cid: self.cid, did: await did, nullified: self.nullified,
+        cid: self.cid, did: did, nullified: self.nullified,
         createdAt: self.createdAt, handle: try await handle, pds: try await pds)
     case .plcOperation:
       guard let plcOp = self.operation as? PlcOperation else {
@@ -138,29 +138,26 @@ struct ExportedOperation: Decodable {
       else {
         throw "Not found handle"
       }
+      let prev = try await { (_ cid: String?) -> Operation? in
+        guard let cid else {
+          return nil
+        }
+        return try await self.resolve(prev: cid, on: database)
+      }(plcOp.prev)
       async let handle = self.resolve(handle: handleString, on: database)
       async let pds = self.resolve(
         serviceEndpoint: plcOp.services.atprotoPds.endpoint, on: database)
-      if let prevCid = plcOp.prev {
-        async let prev = self.resolve(prev: prevCid, on: database)
-        return try Operation(
-          cid: self.cid, did: await did, nullified: self.nullified,
-          createdAt: self.createdAt, prev: try await prev, handle: try await handle,
-          pds: try await pds)
-      } else {
-        return try Operation(
-          cid: self.cid, did: await did, nullified: self.nullified,
-          createdAt: self.createdAt, handle: try await handle,
-          pds: try await pds)
-      }
+      return try Operation(
+        cid: self.cid, did: did, nullified: self.nullified, createdAt: self.createdAt, prev: prev,
+        handle: try await handle, pds: try await pds)
     case .plcTombstone:
       guard let tombstoneOp = self.operation as? PlcTombstone else {
         throw "Invalid operation type"
       }
-      async let prev = self.resolve(prev: tombstoneOp.prev!, on: database)
+      let prev = try await self.resolve(prev: tombstoneOp.prev!, on: database)
       return try Operation(
-        cid: self.cid, did: await did, nullified: self.nullified,
-        createdAt: self.createdAt, prev: try await prev)
+        cid: self.cid, did: did, nullified: self.nullified,
+        createdAt: self.createdAt, prev: prev)
     }
   }
 

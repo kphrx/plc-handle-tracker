@@ -6,10 +6,12 @@ struct AddCompletedColumnToPollingHistoryTable: AsyncMigration {
     try await database.schema("polling_history")
       .field("completed", .bool)
       .update()
-    try await database.transaction { transaction async throws in
+    try await database.transaction { transaction in
       if let sql = transaction as? SQLDatabase {
-        try await sql.raw("UPDATE polling_history SET completed = true WHERE operation IS NOT NULL").run()
-        try await sql.raw("UPDATE polling_history SET completed = false WHERE operation IS NULL").run()
+        try await sql.raw("UPDATE polling_history SET completed = true WHERE operation IS NOT NULL")
+          .run()
+        try await sql.raw("UPDATE polling_history SET completed = false WHERE operation IS NULL")
+          .run()
         try await sql.raw("ALTER TABLE polling_history ALTER COLUMN completed SET NOT NULL").run()
       } else {
         throw "not supported currently database"

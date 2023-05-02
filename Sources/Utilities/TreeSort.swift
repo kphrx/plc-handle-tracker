@@ -1,7 +1,7 @@
 import Foundation
 
 extension Operation: TreeSort {
-  typealias KeyType = UUID
+  typealias KeyType = Operation.IDValue
   func cursor() throws -> KeyType {
     try self.requireID()
   }
