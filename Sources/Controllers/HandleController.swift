@@ -13,8 +13,8 @@ struct HandleContext: Content {
     let did: String
     let pds: String
 
-    init?(op operation: UpdateHandleOp?) {
-      guard let operation, operation.updatedAt == nil else {
+    init?(op operation: UpdateHandleOp) {
+      guard operation.updatedAt == nil else {
         return nil
       }
       self.did = operation.did
@@ -23,7 +23,7 @@ struct HandleContext: Content {
   }
 
   let title: String
-  let current: Current?
+  let current: [Current]
   let operations: [UpdateHandleOp]
 }
 
@@ -76,6 +76,7 @@ struct HandleController: RouteCollection {
     return try await req.view.render(
       "handle/show",
       HandleContext(
-        title: "@\(handle.handle)", current: .init(op: operations.last), operations: operations)
+        title: "@\(handle.handle)", current: operations.compactMap { .init(op: $0) },
+        operations: operations))
   }
 }

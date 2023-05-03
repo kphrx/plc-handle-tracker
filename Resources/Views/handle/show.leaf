@@ -1,14 +1,18 @@
 #extend("templates/status"):
   #export("current_info"):
-    #if(current):
+    #if(count(current) == 0):
+    <p>Currently, not used</p>
+    #else:
     <dl>
       <dt>Server</dt>
-      <dd><a href=#(current.pds)>#(current.pds)</a></dd>
+      #for(op in current):
+      <dd><a href=#(op.pds)>#(op.pds)</a></dd>
+      #endfor
       <dt>DID</dt>
-      <dd class=did-plc><a href=/did/#(current.did)>#(current.did)</a></dd>
+      #for(op in current):
+      <dd class=did-plc><a href=/did/#(op.did)>#(op.did)</a></dd>
+      #endfor
     </dl>
-    #else:
-    <p>Currently, not used</p>
     #endif
   #endexport
   #export("history_heading"): DID History #endexport
