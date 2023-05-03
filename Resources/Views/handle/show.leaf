@@ -6,7 +6,7 @@
     <dl>
       <dt>Server</dt>
       #for(op in current):
-      <dd><a href=#(op.pds)>#(op.pds)</a></dd>
+      <dd>#externalLink(op.pds)</dd>
       #endfor
       <dt>DID</dt>
       #for(op in current):

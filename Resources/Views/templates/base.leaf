@@ -90,7 +90,7 @@ body > footer {
   <footer>
     <p id=license><small>
       (c) 2023 kphrx.
-      <a rel=noopener target=_blank href=https://github.com/kphrx/plc-handle-tracker/blob/master/LICENSE>MIT lisenced</a>.
+      #externalLink("https://github.com/kphrx/plc-handle-tracker/blob/master/LICENSE", "MIT lisenced")
     </small></p>
   </footer>
 </body>

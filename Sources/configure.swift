@@ -17,8 +17,7 @@ struct ErrorContext: Content {
   }
 }
 
-// configures your application
-public func configure(_ app: Application) async throws {
+func customCoder() {
   // milliseconds RFC 3339 encoder/decoder
   let dateFormatter = ISO8601DateFormatter()
   dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -45,12 +44,9 @@ public func configure(_ app: Application) async throws {
     }))
   ContentConfiguration.global.use(decoder: decoder, for: .json)
   ContentConfiguration.global.use(decoder: decoder, for: .jsonAPI)
+}
 
-  // uncomment to serve files from /Public folder
-  // app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
-  app.middleware.use(
-    LeafErrorMiddleware(errorMappings: [:]) { status, error, _ in ErrorContext(status, error) })
-
+func databaseConfig(_ app: Application) {
   app.databases.use(
     .postgres(
       hostname: Environment.get("DATABASE_HOST") ?? "localhost",
@@ -60,13 +56,18 @@ public func configure(_ app: Application) async throws {
       password: Environment.get("DATABASE_PASSWORD") ?? "vapor_password",
       database: Environment.get("DATABASE_NAME") ?? "vapor_database"
     ), as: .psql)
-  migrations(app)
 
+  // register migrations
+  migrations(app)
+}
+
+func jobQueueConfig(_ app: Application) throws {
   try app.queues.use(
     .redis(
       .init(
         url: Environment.get("REDIS_URL") ?? "redis://localhost:6379",
         pool: .init(connectionRetryTimeout: .seconds(60)))))
+
   // register jobs
   jobs(app)
 
@@ -74,11 +75,27 @@ public func configure(_ app: Application) async throws {
     try app.queues.startInProcessJobs(on: .default)
     try app.queues.startScheduledJobs()
   }
+}
 
-  app.views.use(.leaf)
+// configures your application
+public func configure(_ app: Application) async throws {
+  customCoder()
+
+  databaseConfig(app)
+
+  try jobQueueConfig(app)
 
   // register commands
   commands(app)
+
+  app.views.use(.leaf)
+  app.leaf.tags["externalLink"] = ExternalLinkTag()
+
+  // uncomment to serve files from /Public folder
+  // app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
+
+  app.middleware.use(
+    LeafErrorMiddleware(errorMappings: [:]) { status, error, _ in ErrorContext(status, error) })
 
   // register routes
   try routes(app)
