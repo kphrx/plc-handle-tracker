@@ -31,6 +31,9 @@ dl > dd {
   text-overflow: ellipsis;
   grid-column-start: 2;
 }
+p {
+  text-align: center;
+}
 
 table {
   display: block;

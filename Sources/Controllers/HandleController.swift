@@ -1,8 +1,8 @@
 import Fluent
 import Vapor
 
-struct HandleResponse: Content {
-  struct UpdateHandleOperation: Content {
+struct HandleContext: Content {
+  struct UpdateHandleOp: Content {
     let did: String
     let pds: String
     let createdAt: Date
@@ -13,7 +13,7 @@ struct HandleResponse: Content {
     let did: String
     let pds: String
 
-    init?(op operation: UpdateHandleOperation?) {
+    init?(op operation: UpdateHandleOp?) {
       guard let operation, operation.updatedAt == nil else {
         return nil
       }
@@ -24,7 +24,7 @@ struct HandleResponse: Content {
 
   let title: String
   let current: Current?
-  let operations: [UpdateHandleOperation]
+  let operations: [UpdateHandleOp]
 }
 
 struct HandleController: RouteCollection {
@@ -57,7 +57,7 @@ struct HandleController: RouteCollection {
       throw Abort(.notFound)
     }
     let operations = try mergeSort(handle.operations).compactMap {
-      operation -> HandleResponse.UpdateHandleOperation? in
+      operation -> HandleContext.UpdateHandleOp? in
       guard let didOps = try treeSort(operation.did.operations).first else {
         throw "Broken operation tree"
       }
@@ -73,8 +73,9 @@ struct HandleController: RouteCollection {
         did: try operation.did.requireID(), pds: operation.pds!.endpoint,
         createdAt: operation.createdAt, updatedAt: until?.createdAt)
     }
-    let res = HandleResponse(
-      title: "@\(handle.handle)", current: .init(op: operations.last), operations: operations)
-    return try await req.view.render("handle/show", res)
+    return try await req.view.render(
+      "handle/show",
+      HandleContext(
+        title: "@\(handle.handle)", current: .init(op: operations.last), operations: operations)
   }
 }

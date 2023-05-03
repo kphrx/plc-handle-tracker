@@ -1,14 +1,13 @@
 #extend("templates/status"):
   #export("current_info"):
     #if(current):
-    <dl>
-      <dt>Server</dt>
-      <dd><a href=#(current.pds)>#(current.pds)</a></dd>
-      <dt>Handle</dt>
-      <dd class=handle><a href=/handle/#(current.handle)>@#(current.handle)</a></dd>
-    </dl>
-    #else:
-    <p>Tombstone</p>
+      <dl>
+        <dt>Server</dt>
+        <dd><a href=#(current.pds)>#(current.pds)</a></dd>
+        <dt>Handle</dt>
+        <dd class=handle><a href=/handle/#(current.handle)>@#(current.handle)</a></dd>
+      </dl>
+    #else: <p>Tombstone</p>
     #endif
   #endexport
 
@@ -24,7 +23,11 @@
     <tbody>
       #for(operation in operations):
       <tr>
-        <th class=handle>#if(operation.handle): <a href=/handle/#(operation.handle)>@#(operation.handle)</a> #endif</dt>
+        <th class=handle>
+          #if(operation.handle): <a href=/handle/#(operation.handle)>@#(operation.handle)</a>
+          #else: tombstone
+          #endif
+        </dt>
         <td>#date(operation.createdAt, "yyyy-MM-dd HH:mm:ss z")</td>
       </tr>
       #endfor

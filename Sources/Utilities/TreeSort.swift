@@ -47,7 +47,9 @@ func treeSort<T: TreeSort>(_ array: [T]) throws -> [[T]] {
       heads.append(head)
     }
   }
-  guard heads.count > 0 else { throw "Invalid item tree" }
+  if heads.isEmpty {
+    throw "Invalid item tree"
+  }
   return try heads.map { head in
     var result = [head]
     var currentId = try head.cursor()

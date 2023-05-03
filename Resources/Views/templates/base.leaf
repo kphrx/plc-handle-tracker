@@ -5,17 +5,15 @@
   <meta name="viewport" content="width=device-width" />
 
   <title>
-    #if(title):
-    #(title) | @handle and did:plc Tracker
-    #else:
-    @handle and did:plc Tracker
+    #if(title): #(title) | @handle and did:plc Tracker
+    #else: @handle and did:plc Tracker
     #endif
   </title>
 
 <style id=base-style>
 :root {
   font-family: sans-serif;
-  background: #ececec;
+  background: #fff;
   color: #242424;
 }
 
@@ -80,18 +78,13 @@ body > footer {
 </head>
 
 <body>
-  #if(title):
   <header>
-    <p id=app-title><a href=/><span class=handle>@handle</span> and <span class=did-plc>did:plc</span> Tracker</a></p>
+    #if(title): <p id=app-title><a href=/><span class=handle>@handle</span> and <span class=did-plc>did:plc</span> Tracker</a></p>
+    #else: <h1 id=app-title><span class=handle>@handle</span> and <span class=did-plc>did:plc</span> Tracker</h1>
+    #endif
   </header>
   <main>
-    <h1 id=page-title>#(title)</h1>
-  #else:
-  <header>
-    <h1 id=app-title><span class=handle>@handle</span> and <span class=did-plc>did:plc</span> Tracker</h1>
-  </header>
-  <main>
-  #endif
+    #if(title): <h1 id=page-title>#(title)</h1> #endif
     #import("body")
   </main>
   <footer>

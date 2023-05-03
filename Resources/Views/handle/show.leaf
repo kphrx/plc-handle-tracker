@@ -25,7 +25,11 @@
       <tr>
         <th class=did-plc><a href=/did/#(operation.did)>#(operation.did)</a></dt>
         <td>#date(operation.createdAt, "yyyy-MM-dd HH:mm:ss z")</td>
-        <td>#if(operation.updatedAt): #date(operation.updatedAt, "yyyy-MM-dd HH:mm:ss z") #else: - #endif</td>
+        <td>
+          #if(operation.updatedAt): #date(operation.updatedAt, "yyyy-MM-dd HH:mm:ss z")
+          #else: -
+          #endif
+        </td>
       </tr>
       #endfor
     </tbody>

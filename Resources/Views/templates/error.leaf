@@ -12,7 +12,6 @@ h2 {
 
   #export("body"):
   <section name=error-info>
-    <h2>#import("heading")</h2>
     #import("info")
   </section>
   #endexport

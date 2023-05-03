@@ -14,7 +14,7 @@ struct ImportExportedLogJob: AsyncJob {
     let decoder = try ContentConfiguration.global.requireDecoder(for: .json)
     let json = try decoder.decode(
       [ExportedOperation].self, from: .init(string: payload.json), headers: [:])
-    guard json.count > 0 else {
+    if json.isEmpty {
       throw "Empty export"
     }
     try await withThrowingTaskGroup(of: Void.self) { [self] group in

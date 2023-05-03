@@ -5,6 +5,18 @@ import LeafErrorMiddleware
 import QueuesRedisDriver
 import Vapor
 
+struct ErrorContext: Content {
+  let title: String
+  var reason: String?
+
+  init(_ status: HTTPStatus, _ error: Error) {
+    if let abortError = error as? AbortError, abortError.reason != status.reasonPhrase {
+      self.reason = abortError.reason
+    }
+    self.title = "\(status.code) \(status.reasonPhrase)"
+  }
+}
+
 // configures your application
 public func configure(_ app: Application) async throws {
   // milliseconds RFC 3339 encoder/decoder
@@ -36,7 +48,8 @@ public func configure(_ app: Application) async throws {
 
   // uncomment to serve files from /Public folder
   // app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
-  app.middleware.use(LeafErrorMiddlewareDefaultGenerator.build(errorMappings: [:]))
+  app.middleware.use(
+    LeafErrorMiddleware(errorMappings: [:]) { status, error, _ in ErrorContext(status, error) })
 
   app.databases.use(
     .postgres(

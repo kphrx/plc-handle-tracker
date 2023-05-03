@@ -26,9 +26,17 @@ dl > dd {
   #export("body"):
   <dl>
     <dt>Latest imported</dt>
-    <dd>#if(latestImported): #date(latestImported, "yyyy-MM-dd HH:mm:ss z") #else: - #endif</dd>
+    <dd>
+      #if(latestImported): #date(latestImported, "yyyy-MM-dd HH:mm:ss z")
+      #else: -
+      #endif
+    </dd>
     <dt>Last import log</dt>
-    <dd>#if(lastImport): #date(lastImport, "yyyy-MM-dd HH:mm:ss z") #else: - #endif</dd>
+    <dd>
+      #if(lastImport): #date(lastImport, "yyyy-MM-dd HH:mm:ss z")
+      #else: -
+      #endif
+    </dd>
   </dl>
   <p>Example <span class=did-plc>did:plc</span> page: <a href=/did/did:plc:ragtjsm2j2vknwkz3zp4oxrd>GET&nbsp;/did/did:plc:ragtjsm2j2vknwkz3zp4oxrd</a></p>
   <p>Example <span class=handle>@handle</span> page: <a href=/handle/paul.bsky.social>GET&nbsp;/handle/paul.bsky.social</a></p>

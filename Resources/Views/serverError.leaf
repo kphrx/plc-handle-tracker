@@ -1,11 +1,8 @@
 #extend("templates/error"):
-  #export("heading"): #(status) #(statusMessage) #endexport
   #export("info"):
   <p>
-    #if(reason && statusMessage != reason):
-    #(reason)
-    #else:
-    Error code: is 4xx, check URL. is 5xx, try again later.
+    #if(reason): #(reason)
+    #else: Error code: Is 4xx, check URL. Is 5xx, try again later.
     #endif
   </p>
   #endexport
