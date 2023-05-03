@@ -2,7 +2,7 @@
   #export("current_info"):
     #if(current):
     <dl>
-      <dt>Personal Data Server</dt>
+      <dt>Server</dt>
       <dd><a href=#(current.pds)>#(current.pds)</a></dd>
       <dt>DID</dt>
       <dd class=did-plc><a href=/did/#(current.did)>#(current.did)</a></dd>

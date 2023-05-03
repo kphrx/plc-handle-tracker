@@ -13,8 +13,17 @@
   </title>
 
 <style id=base-style>
-html {
+:root {
   font-family: sans-serif;
+  background: #ececec;
+  color: #242424;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    background: #000;
+    color: #dbdbdb;
+  }
 }
 
 body {
@@ -86,7 +95,10 @@ body > footer {
     #import("body")
   </main>
   <footer>
-    <p id=license><small><a rel=noopener target=_blank href=https://github.com/kphrx/plc-handle-tracker/blob/master/LICENSE>MIT lisenced</a>. (c) 2023 kphrx.</small></p>
+    <p id=license><small>
+      (c) 2023 kphrx.
+      <a rel=noopener target=_blank href=https://github.com/kphrx/plc-handle-tracker/blob/master/LICENSE>MIT lisenced</a>.
+    </small></p>
   </footer>
 </body>
 </html>
