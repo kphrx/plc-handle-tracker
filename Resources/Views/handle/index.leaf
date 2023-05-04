@@ -1,0 +1,74 @@
+#extend("templates/base"):
+  #export("head"):
+<style>
+dl, form {
+  margin: 0 auto;
+  width: max-content;
+  max-width: calc(100vw - 16px);
+}
+
+dl {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: .5rem 1rem;
+}
+dl > dt {
+  font-weight: bold;
+  text-align: right;
+}
+dl > dd {
+  margin: 0;
+}
+
+form {
+  margin-top: 1em;
+  gap: 1ex;
+  display: flex;
+  align-items: center;
+}
+input {
+  color: currentColor;
+  background-color: #ececec;
+  border: none;
+  padding: 8px;
+}
+@media (prefers-color-scheme: dark) {
+  input {
+    background-color: #2c2c2c;
+  }
+}
+span[data-prefix] {
+  position: relative;
+}
+span[data-prefix]::before {
+  content: attr(data-prefix);
+  position: absolute;
+  inset: 2px 8px;
+  opacity: .8;
+}
+span[data-prefix] > input {
+  position: relative;
+  z-index: -1;
+  padding-left: calc(1rem + 8px);
+}
+span[data-prefix] > input::placeholder {
+  opacity: .6;
+}
+</style>
+  #endexport
+
+  #export("body"):
+  <dl>
+    <dt>Known handles count</dt>
+    <dd>#(count)</dd>
+  </dl>
+  #if(message): <p>#(message)</p> #endif
+  <form action=/handle method=get>
+    <label>
+      Handle:
+      <span data-prefix=@><input type=search name=name placeholder=example.bsky.social></span>
+    </label>
+    <button>Search</button>
+  </form>
+  #endexport
+#endextend

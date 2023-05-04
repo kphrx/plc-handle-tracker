@@ -1,7 +1,17 @@
 import Fluent
 import Vapor
 
-struct HandleContext: Content {
+struct HandleIndexQuery: Content {
+  let name: String?
+}
+
+struct HandleIndexContext: Content {
+  let title: String
+  let count: Int
+  let message: String?
+}
+
+struct HandleShowContext: Content {
   struct UpdateHandleOp: Content {
     let did: String
     let pds: String
@@ -36,8 +46,19 @@ struct HandleController: RouteCollection {
     }
   }
 
-  func index(req: Request) async throws -> [Handle] {
-    try await Handle.query(on: req.db).all()
+  func index(req: Request) async throws -> ViewOrRedirect {
+    let query = try req.query.decode(DidIndexQuery.self)
+    let message: String?
+    if let handle = query.name {
+      if try await Handle.query(on: req.db).filter(\.$handle == handle).first() != nil {
+        return .redirect(to: "/handle/\(handle)")
+      }
+      message = "Not found handle: @\(handle)"
+    } else {
+      message = nil
+    }
+    let count = try await Did.query(on: req.db).count()
+    return .view(try await req.view.render("handle/index", DidIndexContext(title: "Handles", count: count, message: message)))
   }
 
   func show(req: Request) async throws -> View {
@@ -57,7 +78,7 @@ struct HandleController: RouteCollection {
       throw Abort(.notFound)
     }
     let operations = try mergeSort(handle.operations).compactMap {
-      operation -> HandleContext.UpdateHandleOp? in
+      operation -> HandleShowContext.UpdateHandleOp? in
       guard let didOps = try treeSort(operation.did.operations).first else {
         throw "Broken operation tree"
       }
@@ -75,7 +96,7 @@ struct HandleController: RouteCollection {
     }
     return try await req.view.render(
       "handle/show",
-      HandleContext(
+      HandleShowContext(
         title: "@\(handle.handle)", current: operations.compactMap { .init(op: $0) },
         operations: operations))
   }

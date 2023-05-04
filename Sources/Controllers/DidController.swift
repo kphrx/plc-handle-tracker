@@ -1,7 +1,17 @@
 import Fluent
 import Vapor
 
-struct DidContext: Content {
+struct DidIndexQuery: Content {
+  let name: String?
+}
+
+struct DidIndexContext: Content {
+  let title: String
+  let count: Int
+  let message: String?
+}
+
+struct DidShowContext: Content {
   struct UpdateHandleOp: Content {
     let handle: String?
     let pds: String?
@@ -35,8 +45,23 @@ struct DidController: RouteCollection {
     }
   }
 
-  func index(req: Request) async throws -> [Did] {
-    try await Did.query(on: req.db).all()
+  func index(req: Request) async throws -> ViewOrRedirect {
+    let query = try req.query.decode(DidIndexQuery.self)
+    let message: String?
+    if let did = query.name {
+      if validateDidPlaceholder(did) {
+        if try await Did.find(did, on: req.db) != nil {
+          return .redirect(to: "/did/\(did)")
+        }
+        message = "Not found did: \(did)"
+      } else {
+        message = "Invalid did format: \(did)"
+      }
+    } else {
+      message = nil
+    }
+    let count = try await Did.query(on: req.db).count()
+    return .view(try await req.view.render("did/index", DidIndexContext(title: "DID Placeholders", count: count, message: message)))
   }
 
   func show(req: Request) async throws -> View {
@@ -62,14 +87,14 @@ struct DidController: RouteCollection {
       throw "Broken operation tree"
     }
     let updateHandleOps = try onlyUpdateHandle(op: operations).map {
-      operation -> DidContext.UpdateHandleOp in
+      operation -> DidShowContext.UpdateHandleOp in
       return .init(
         handle: operation.handle?.handle, pds: operation.pds?.endpoint,
         createdAt: operation.createdAt)
     }
     return try await req.view.render(
       "did/show",
-      DidContext(
+      DidShowContext(
         title: try didPlc.requireID(), current: .init(op: updateHandleOps.last),
         operations: updateHandleOps))
   }
