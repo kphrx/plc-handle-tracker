@@ -61,7 +61,9 @@ struct DidController: RouteCollection {
       message = nil
     }
     let count = try await Did.query(on: req.db).count()
-    return .view(try await req.view.render("did/index", DidIndexContext(title: "DID Placeholders", count: count, message: message)))
+    return .view(
+      try await req.view.render(
+        "did/index", DidIndexContext(title: "DID Placeholders", count: count, message: message)))
   }
 
   func show(req: Request) async throws -> View {

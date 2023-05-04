@@ -58,7 +58,9 @@ struct HandleController: RouteCollection {
       message = nil
     }
     let count = try await Did.query(on: req.db).count()
-    return .view(try await req.view.render("handle/index", DidIndexContext(title: "Handles", count: count, message: message)))
+    return .view(
+      try await req.view.render(
+        "handle/index", DidIndexContext(title: "Handles", count: count, message: message)))
   }
 
   func show(req: Request) async throws -> View {
