@@ -53,9 +53,15 @@ struct DidController: RouteCollection {
         if try await Did.find(did, on: req.db) != nil {
           return .redirect(to: "/did/\(did)")
         }
-        message = "Not found did: \(did)"
+        message = "Not found: \(did)"
+      } else if validateDidPlaceholder("did:plc:" + did) {
+        let did = "did:plc:" + did
+        if try await Did.find(did, on: req.db) != nil {
+          return .redirect(to: "/did/\(did)")
+        }
+        message = "Not found: \(did)"
       } else {
-        message = "Invalid did format: \(did)"
+        message = "Invalid DID format: \(did)"
       }
     } else {
       message = nil
@@ -71,7 +77,7 @@ struct DidController: RouteCollection {
       throw Abort(.internalServerError)
     }
     if !validateDidPlaceholder(did) {
-      throw Abort(.badRequest, reason: "Invalid DID Placeholder")
+      throw Abort(.badRequest, reason: "Invalid DID format")
     }
     guard
       let didPlc = try await Did.query(on: req.db).filter(\.$id == did).with(

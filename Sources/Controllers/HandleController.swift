@@ -9,6 +9,7 @@ struct HandleIndexContext: Content {
   let title: String
   let count: Int
   let message: String?
+  let result: [Handle]
 }
 
 struct HandleShowContext: Content {
@@ -48,19 +49,24 @@ struct HandleController: RouteCollection {
 
   func index(req: Request) async throws -> ViewOrRedirect {
     let query = try req.query.decode(DidIndexQuery.self)
+    var searchResult: [Handle] = []
     let message: String?
     if let handle = query.name {
       if try await Handle.query(on: req.db).filter(\.$handle == handle).first() != nil {
         return .redirect(to: "/handle/\(handle)")
       }
+      if handle.count > 3 {
+        searchResult = try await Handle.query(on: req.db).filter(\.$handle =~ handle).all()
+      }
       message = "Not found handle: @\(handle)"
     } else {
       message = nil
     }
-    let count = try await Did.query(on: req.db).count()
+    let count = try await Handle.query(on: req.db).count()
     return .view(
       try await req.view.render(
-        "handle/index", DidIndexContext(title: "Handles", count: count, message: message)))
+        "handle/index",
+        HandleIndexContext(title: "Handles", count: count, message: message, result: searchResult)))
   }
 
   func show(req: Request) async throws -> View {

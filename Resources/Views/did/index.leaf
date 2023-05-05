@@ -9,7 +9,10 @@
 
   #export("search"):
     <form action=/did method=get>
-      <label>DID: <input type=search name=name placeholder=did:plc:example></label>
+      <label>
+        DID:
+        <span data-prefix=did:plc: style="--prefix-width: 4.8em"><input type=search name=name placeholder=ragtjsm2j2vknwkz3zp4oxrd></span>
+      </label>
       <button>Search</button>
     </form>
   #endexport

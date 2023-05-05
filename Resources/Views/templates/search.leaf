@@ -1,7 +1,7 @@
 #extend("templates/base"):
   #export("head"):
 <style id=search-style>
-dl, p, form {
+dl, p.message, form {
   margin: 0 auto;
   width: max-content;
   max-width: calc(100vw - 16px);
@@ -44,16 +44,20 @@ span[data-prefix] {
 span[data-prefix]::before {
   content: attr(data-prefix);
   position: absolute;
-  inset: 2px 8px;
+  inset: 0px 8px;
+  font-size: medium;
+  font-family: courier;
   opacity: .8;
+}
+span[data-prefix] > input::placeholder {
+  opacity: .6;
 }
 span[data-prefix] > input {
   position: relative;
   z-index: -1;
-  padding-left: calc(1rem + 8px);
-}
-span[data-prefix] > input::placeholder {
-  opacity: .6;
+  font-size: medium;
+  font-family: courier;
+  padding-left: calc(var(--prefix-width, 1em) + 8px);
 }
 </style>
   #endexport
@@ -64,7 +68,7 @@ span[data-prefix] > input::placeholder {
   </section>
 
   <section id=search>
-    #import("form")
+    #import("search")
   </section>
   #endexport
 #endextend
