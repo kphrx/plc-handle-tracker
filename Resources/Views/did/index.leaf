@@ -10,7 +10,12 @@
     <form action=/did method=get>
       <label>
         DID:
-        <span data-prefix=did:plc: style="--prefix-width: 4.8em"><input type=search name=name placeholder=ragtjsm2j2vknwkz3zp4oxrd></span>
+        <span data-prefix=did:plc: style="--prefix-width: 4.8em">
+          <input type=search
+                 name=specific_id
+                 #if(currentValue): value="#(currentValue)" #endif
+                 placeholder=ragtjsm2j2vknwkz3zp4oxrd>
+        </span>
       </label>
       <button>Search</button>
     </form>

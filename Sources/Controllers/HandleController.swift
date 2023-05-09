@@ -5,9 +5,42 @@ struct HandleIndexQuery: Content {
   let name: String?
 }
 
+enum HandleSearchResult {
+  case notFound(_: String)
+  case list(_: String, result: [Handle])
+  case redirect(_: String)
+  case none
+
+  func list() -> [Handle] {
+    switch self {
+    case .list(_, let result): return result
+    default: return []
+    }
+  }
+
+  func message() -> String? {
+    switch self {
+    case .notFound(let handle): return "Not found: @\(handle)"
+    case .list(let handle, let result) where result.isEmpty: return "Not found: @\(handle)*"
+    case .list(let handle, result: _): return "Search: @\(handle)*"
+    default: return nil
+    }
+  }
+
+  func status() -> HTTPResponseStatus {
+    switch self {
+    case .notFound: return .notFound
+    case .redirect: return .movedPermanently
+    case .list(_, let result) where result.isEmpty: return .notFound
+    case .list, .none: return .ok
+    }
+  }
+}
+
 struct HandleIndexContext: Content {
   let title: String
   let count: Int
+  let currentValue: String?
   let message: String?
   let result: [Handle]
 }
@@ -49,24 +82,36 @@ struct HandleController: RouteCollection {
 
   func index(req: Request) async throws -> ViewOrRedirect {
     let query = try req.query.decode(HandleIndexQuery.self)
-    var searchResult: [Handle] = []
-    let message: String?
+    let currentValue: String?
+    let result: HandleSearchResult
     if let handle = query.name {
-      if try await Handle.query(on: req.db).filter(\.$handle == handle).first() != nil {
-        return .redirect(to: "/handle/\(handle)")
-      }
-      if handle.count > 3 {
-        searchResult = try await Handle.query(on: req.db).filter(\.$handle =~ handle).all()
-      }
-      message = "Not found handle: @\(handle)"
+      result = try await search(handle: handle, on: req.db)
+      currentValue = handle
     } else {
-      message = nil
+      result = .none
+      currentValue = nil
+    }
+    if case .redirect(let handle) = result {
+      return .redirect(to: "/handle/\(handle)")
     }
     let count = try await Handle.query(on: req.db).count()
     return .view(
       try await req.view.render(
         "handle/index",
-        HandleIndexContext(title: "Handles", count: count, message: message, result: searchResult)))
+        HandleIndexContext(
+          title: "DID Placeholders", count: count, currentValue: currentValue,
+          message: result.message(), result: result.list())), status: result.status())
+  }
+
+  private func search(handle: String, on database: Database) async throws -> HandleSearchResult {
+    if try await Handle.query(on: database).filter(\.$handle == handle).first() != nil {
+      return .redirect(handle)
+    }
+    if handle.count > 3 {
+      return .list(
+        handle, result: try await Handle.query(on: database).filter(\.$handle =~ handle).all())
+    }
+    return .notFound(handle)
   }
 
   func show(req: Request) async throws -> View {

@@ -11,6 +11,7 @@
   </title>
 
 <style id=base-style>
+/* layouts */
 body {
   display: flex;
   flex-direction: column;

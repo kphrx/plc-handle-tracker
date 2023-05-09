@@ -10,7 +10,12 @@
     <form action=/handle method=get>
       <label>
         Handle:
-        <span data-prefix=@ style="--prefix-width: .7em"><input type=search name=name placeholder=paul.bsky.social></span>
+        <span data-prefix=@ style="--prefix-width: .7em">
+          <input type=search
+                 name=name
+                 #if(currentValue): value="#(currentValue)" #endif
+                 placeholder=paul.bsky.social>
+        </span>
       </label>
       <button>Search</button>
     </form>
