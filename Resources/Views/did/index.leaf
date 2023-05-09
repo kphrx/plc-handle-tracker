@@ -4,7 +4,6 @@
       <dt>Known DIDs count</dt>
       <dd>#(count)</dd>
     </dl>
-    #if(message): <p class=message>#(message)</p> #endif
   #endexport
 
   #export("search"):
@@ -15,5 +14,6 @@
       </label>
       <button>Search</button>
     </form>
+    #if(message): <p class=message>#(message)</p> #endif
   #endexport
 #endextend

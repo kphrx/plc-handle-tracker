@@ -91,11 +91,12 @@ public func configure(_ app: Application) async throws {
   app.views.use(.leaf)
   app.leaf.tags["externalLink"] = ExternalLinkTag()
 
-  // uncomment to serve files from /Public folder
-  // app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
-
   app.middleware.use(
     LeafErrorMiddleware(errorMappings: [:]) { status, error, _ in ErrorContext(status, error) })
+
+  // serve files from /Public folder
+  app.middleware.use(
+    FileMiddleware(publicDirectory: app.directory.publicDirectory, directoryAction: .redirect))
 
   // register routes
   try routes(app)

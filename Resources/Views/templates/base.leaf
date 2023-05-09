@@ -11,40 +11,6 @@
   </title>
 
 <style id=base-style>
-:root {
-  font-family: sans-serif;
-  background: #fff;
-  color: #242424;
-}
-
-a {
-  text-decoration: none;
-  color: #0068da;
-}
-a:visited {
-  color: #ad52de;
-}
-a:active {
-  color: #ee0000;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    background: #000;
-    color: #dbdbdb;
-  }
-
-  a {
-    color: #ff9724;
-  }
-  a:visited {
-    color: #4fad20;
-  }
-  a:active {
-    color: #11ffff;
-  }
-}
-
 body {
   display: flex;
   flex-direction: column;
@@ -58,41 +24,13 @@ body > header {
   padding: 16px;
 }
 
-#app-title {
-  margin: 0 48px;
-  font-size: 1.5rem;
-  font-weight: normal;
-  text-align: center;
-  white-space: nowrap;
-}
-
-#app-title > a {
-  color: currentColor;
-}
-
 main {
   flex: auto;
   padding: 8px;
 }
 
-#page-title {
-  margin: 0 5px 16px;
-  font-size: 1.6rem;
-  text-align: center;
-  white-space: nowrap;
-}
-
 body > footer {
   padding: 16px;
-}
-
-#license {
-  margin: 0;
-  text-align: center;
-}
-
-.handle, .did-plc {
-  font-family: monospace, serif;
 }
 </style>
 
@@ -154,6 +92,8 @@ body > footer {
   }
 }
 </style>
+
+  <link rel="stylesheet" href="/styles/base.css">
 
 #import("head")
 </head>

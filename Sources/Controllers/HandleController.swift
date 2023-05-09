@@ -48,7 +48,7 @@ struct HandleController: RouteCollection {
   }
 
   func index(req: Request) async throws -> ViewOrRedirect {
-    let query = try req.query.decode(DidIndexQuery.self)
+    let query = try req.query.decode(HandleIndexQuery.self)
     var searchResult: [Handle] = []
     let message: String?
     if let handle = query.name {

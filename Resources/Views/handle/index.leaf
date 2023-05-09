@@ -4,7 +4,6 @@
       <dt>Known handles count</dt>
       <dd>#(count)</dd>
     </dl>
-    #if(message): <p class=message>#(message)</p> #endif
   #endexport
 
   #export("search"):
@@ -15,10 +14,11 @@
       </label>
       <button>Search</button>
     </form>
+    #if(message): <p class=message>#(message)</p> #endif
     #if(count(result) != 0):
     <ul>
       #for(handle in result):
-      <li>#(handle.handle)</li>
+      <li><a href="/handle/#(handle.handle)">@#(handle.handle)</a></li>
       #endfor
     </ul>
     #endif
