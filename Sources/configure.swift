@@ -1,21 +1,8 @@
 import Fluent
 import FluentPostgresDriver
 import Leaf
-import LeafErrorMiddleware
 import QueuesRedisDriver
 import Vapor
-
-struct ErrorContext: Content {
-  let title: String
-  var reason: String?
-
-  init(_ status: HTTPStatus, _ error: Error) {
-    if let abortError = error as? AbortError, abortError.reason != status.reasonPhrase {
-      self.reason = abortError.reason
-    }
-    self.title = "\(status.code) \(status.reasonPhrase)"
-  }
-}
 
 func customCoder() {
   // milliseconds RFC 3339 encoder/decoder
@@ -91,8 +78,7 @@ public func configure(_ app: Application) async throws {
   app.views.use(.leaf)
   app.leaf.tags["externalLink"] = ExternalLinkTag()
 
-  app.middleware.use(
-    LeafErrorMiddleware(errorMappings: [:]) { status, error, _ in ErrorContext(status, error) })
+  app.middleware.use(ErrorMiddleware(environment: app.environment))
 
   // serve files from /Public folder
   app.middleware.use(

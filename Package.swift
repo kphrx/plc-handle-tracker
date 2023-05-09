@@ -11,7 +11,6 @@ let package = Package(
     .package(url: "https://github.com/vapor/fluent-postgres-driver.git", from: "2.0.0"),
     .package(url: "https://github.com/vapor/queues-redis-driver.git", from: "1.0.0"),
     .package(url: "https://github.com/vapor/leaf.git", from: "4.0.0"),
-    .package(url: "https://github.com/brokenhandsio/leaf-error-middleware.git", from: "4.0.0"),
   ],
   targets: [
     // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -24,7 +23,6 @@ let package = Package(
         .product(name: "QueuesRedisDriver", package: "queues-redis-driver"),
         .product(name: "Leaf", package: "leaf"),
         .product(name: "Vapor", package: "vapor"),
-        .product(name: "LeafErrorMiddleware", package: "leaf-error-middleware"),
       ],
       path: "Sources",
       swiftSettings: [
