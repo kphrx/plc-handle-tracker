@@ -1,6 +1,5 @@
 import Fluent
 import FluentPostgresDriver
-import Leaf
 import QueuesRedisDriver
 import Vapor
 
@@ -75,8 +74,8 @@ public func configure(_ app: Application) async throws {
   // register commands
   commands(app)
 
-  app.views.use(.leaf)
-  app.leaf.tags["externalLink"] = ExternalLinkTag()
+  // register views
+  views(app)
 
   app.middleware.use(ErrorMiddleware(environment: app.environment))
 

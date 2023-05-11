@@ -1,6 +1,13 @@
 import Fluent
 import Vapor
 
+struct IndexContext: BaseContext {
+  private(set) var title: String? = nil
+  let route: String
+  let latestImported: Date?
+  let lastImport: Date?
+}
+
 func routes(_ app: Application) throws {
   app.get { req -> View in
     let latestPolling = try await PollingHistory.query(on: req.db).filter(\.$failed == false)
@@ -9,7 +16,9 @@ func routes(_ app: Application) throws {
       ).first()
     return try await req.view.render(
       "index",
-      ["latestImported": latestPolling?.createdAt, "lastImport": latestPolling?.insertedAt])
+      IndexContext(
+        route: req.route?.description ?? "", latestImported: latestPolling?.createdAt,
+        lastImport: latestPolling?.insertedAt))
   }
 
   try app.register(collection: DidController())

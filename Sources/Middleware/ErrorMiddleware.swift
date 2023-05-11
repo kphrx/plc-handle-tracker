@@ -1,7 +1,8 @@
 import Vapor
 
-struct ErrorContext: Content {
-  let title: String
+struct ErrorContext: BaseContext {
+  let title: String?
+  let route: String
   let reason: String?
 }
 
@@ -32,7 +33,9 @@ struct ErrorMiddleware: AsyncMiddleware {
       status = .internalServerError
       reason = self.environment.isRelease ? "Something went wrong." : String(describing: error)
     }
-    let context = ErrorContext(title: "\(status.code) \(status.reasonPhrase)", reason: reason)
+    let context = ErrorContext(
+      title: "\(status.code) \(status.reasonPhrase)", route: req.route?.description ?? "",
+      reason: reason)
     let res: Response
     do {
       res = try await req.view.render("error/\(status.code)", context).encodeResponse(for: req)

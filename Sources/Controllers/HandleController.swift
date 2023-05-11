@@ -37,15 +37,16 @@ enum HandleSearchResult {
   }
 }
 
-struct HandleIndexContext: Content {
-  let title: String
+struct HandleIndexContext: BaseContext {
+  let title: String?
+  let route: String
   let count: Int
   let currentValue: String?
   let message: String?
   let result: [Handle]
 }
 
-struct HandleShowContext: Content {
+struct HandleShowContext: BaseContext {
   struct UpdateHandleOp: Content {
     let did: String
     let pds: String
@@ -66,7 +67,8 @@ struct HandleShowContext: Content {
     }
   }
 
-  let title: String
+  let title: String?
+  let route: String
   let current: [Current]
   let operations: [UpdateHandleOp]
 }
@@ -99,8 +101,9 @@ struct HandleController: RouteCollection {
       try await req.view.render(
         "handle/index",
         HandleIndexContext(
-          title: "DID Placeholders", count: count, currentValue: currentValue,
-          message: result.message(), result: result.list())), status: result.status())
+          title: "DID Placeholders", route: req.route?.description ?? "", count: count,
+          currentValue: currentValue, message: result.message(), result: result.list())),
+      status: result.status())
   }
 
   private func search(handle: String, on database: Database) async throws -> HandleSearchResult {
@@ -150,7 +153,7 @@ struct HandleController: RouteCollection {
     return try await req.view.render(
       "handle/show",
       HandleShowContext(
-        title: "@\(handle.handle)", current: operations.compactMap { .init(op: $0) },
-        operations: operations))
+        title: "@\(handle.handle)", route: req.route?.description ?? "",
+        current: operations.compactMap { .init(op: $0) }, operations: operations))
   }
 }

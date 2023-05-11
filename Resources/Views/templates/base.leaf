@@ -11,7 +11,6 @@
   </title>
 
 <style id=base-style>
-/* layouts */
 body {
   display: flex;
   flex-direction: column;
@@ -24,73 +23,39 @@ body {
 body > header {
   padding: 16px;
 }
+#app-title {
+  margin: 0 48px;
+}
+body > header > nav {
+  margin: 5px;
+}
+body > header > nav > p {
+  margin: 0;
+}
+body > header > nav > ul {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  list-style: none;
+  padding: 0;
+  margin: 0 auto;
+  width: max-content;
+  max-width: 320px;
+}
 
 main {
   flex: auto;
   padding: 8px;
 }
+#page-title {
+  margin-top: 0;
+}
 
 body > footer {
   padding: 16px;
 }
-</style>
-
-<style id=github-corner-style>
-#source-code {
+#license {
   margin: 0;
-  width: 0;
-  height: 0;
-  overflow: hidden;
-}
-
-.github-corner svg {
-  fill: #151513;
-  color: #fff;
-  position: absolute;
-  top: 0;
-  border: 0;
-  left: 0;
-  transform: scale(-1, 1);
-  clip-path: polygon(0 0, 100% 0, 100% 100%);
-}
-
-@media (prefers-color-scheme: dark) {
-  .github-corner svg {
-    fill: #fff;
-    color: #151513;
-  }
-}
-
-.github-corner .octo-arm {
-  transform-origin: 130px 106px;
-}
-
-.github-corner:hover .octo-arm {
-  animation: octocat-wave 560ms ease-in-out;
-}
-
-@keyframes octocat-wave {
-  0%, 100% {
-    transform: rotate(0);
-  }
-
-  20%, 60% {
-    transform: rotate(-25deg);
-  }
-
-  40%, 80% {
-    transform: rotate(10deg);
-  }
-}
-
-@media (max-width: 500px) {
-  .github-corner:hover .octo-arm {
-    animation: none;
-  }
-
-  .github-corner .octo-arm {
-    animation: octocat-wave 560ms ease-in-out;
-  }
 }
 </style>
 
@@ -101,9 +66,22 @@ body > footer {
 
 <body>
   <header>
-    #if(title): <p id=app-title><a href=/><span class=handle>@handle</span> and <span class=did-plc>did:plc</span> Tracker</a></p>
-    #else: <h1 id=app-title><span class=handle>@handle</span> and <span class=did-plc>did:plc</span> Tracker</h1>
+    #if(title):
+    <p id=app-title>#navLink("/", route):
+      <span class=handle>@handle</span> and <span class=did-plc>did:plc</span> Tracker</a>
+    #endnavLink</p>
+    #else:
+    <h1 id=app-title>#navLink("/", route):
+      <span class=handle>@handle</span> and <span class=did-plc>did:plc</span> Tracker</a>
+    #endnavLink</h1>
     #endif
+    <nav>
+      <p>Search</p>
+      <ul>
+        <li>#navLink("/did", route): <span class=did-plc>did:plc</span> #endnavLink</li>
+        <li>#navLink("/handle", route): <span class=handle>@handle</span> #endnavLink</li>
+      </ul>
+    </nav>
   </header>
   <main>
     #if(title): <h1 id=page-title>#(title)</h1> #endif

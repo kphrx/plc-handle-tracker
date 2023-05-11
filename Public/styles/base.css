@@ -42,25 +42,83 @@ a:active {
 }
 
 #app-title {
-  margin: 0 48px;
   font-size: 1.5rem;
   font-weight: normal;
   text-align: center;
   white-space: nowrap;
 }
+body > header > nav > p {
+  text-align: center;
+}
 
 #page-title {
-  margin: 0 5px 16px;
   font-size: 1.6rem;
   text-align: center;
   white-space: nowrap;
 }
 
 #license {
-  margin: 0;
   text-align: center;
 }
 
 .handle, .did-plc {
   font-family: monospace, serif;
+}
+
+/* github-corners */
+#source-code {
+  margin: 0;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.github-corner svg {
+  fill: #151513;
+  color: #fff;
+  position: absolute;
+  top: 0;
+  border: 0;
+  left: 0;
+  transform: scale(-1, 1);
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+
+@media (prefers-color-scheme: dark) {
+  .github-corner svg {
+    fill: #fff;
+    color: #151513;
+  }
+}
+
+.github-corner .octo-arm {
+  transform-origin: 130px 106px;
+}
+
+.github-corner:hover .octo-arm {
+  animation: octocat-wave 560ms ease-in-out;
+}
+
+@keyframes octocat-wave {
+  0%, 100% {
+    transform: rotate(0);
+  }
+
+  20%, 60% {
+    transform: rotate(-25deg);
+  }
+
+  40%, 80% {
+    transform: rotate(10deg);
+  }
+}
+
+@media (max-width: 500px) {
+  .github-corner:hover .octo-arm {
+    animation: none;
+  }
+
+  .github-corner .octo-arm {
+    animation: octocat-wave 560ms ease-in-out;
+  }
 }

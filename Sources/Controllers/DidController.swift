@@ -35,14 +35,15 @@ enum DidSearchResult {
   }
 }
 
-struct DidIndexContext: Content {
-  let title: String
+struct DidIndexContext: BaseContext {
+  let title: String?
+  let route: String
   let count: Int
   let currentValue: String?
   let message: String?
 }
 
-struct DidShowContext: Content {
+struct DidShowContext: BaseContext {
   struct UpdateHandleOp: Content {
     let handle: String?
     let pds: String?
@@ -62,7 +63,8 @@ struct DidShowContext: Content {
     }
   }
 
-  let title: String
+  let title: String?
+  let route: String
   let current: Current?
   let operations: [UpdateHandleOp]
 }
@@ -98,8 +100,8 @@ struct DidController: RouteCollection {
       try await req.view.render(
         "did/index",
         DidIndexContext(
-          title: "DID Placeholders", count: count, currentValue: currentValue,
-          message: result.message())), status: result.status())
+          title: "DID Placeholders", route: req.route?.description ?? "", count: count,
+          currentValue: currentValue, message: result.message())), status: result.status())
   }
 
   private func search(did: String, on database: Database) async throws -> DidSearchResult {
@@ -143,7 +145,7 @@ struct DidController: RouteCollection {
     return try await req.view.render(
       "did/show",
       DidShowContext(
-        title: try didPlc.requireID(), current: .init(op: updateHandleOps.last),
-        operations: updateHandleOps))
+        title: try didPlc.requireID(), route: req.route?.description ?? "",
+        current: .init(op: updateHandleOps.last), operations: updateHandleOps))
   }
 }
