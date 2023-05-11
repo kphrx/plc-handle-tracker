@@ -1,12 +1,7 @@
 #extend("templates/search"):
-  #export("status"):
-    <dl>
-      <dt>Known handles count</dt>
-      <dd>#(count)</dd>
-    </dl>
-  #endexport
+  #export("kind"): handles #endexport
 
-  #export("search"):
+  #export("form"):
     <form action=/handle method=get>
       <label>
         Handle:
@@ -19,7 +14,9 @@
       </label>
       <button>Search</button>
     </form>
-    #if(message): <p class=message>#(message)</p> #endif
+  #endexport
+
+  #export("result"):
     #if(count(result) != 0):
     <ul>
       #for(handle in result):

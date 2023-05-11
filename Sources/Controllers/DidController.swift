@@ -35,7 +35,7 @@ enum DidSearchResult {
   }
 }
 
-struct DidIndexContext: BaseContext {
+struct DidIndexContext: SearchContext {
   let title: String?
   let route: String
   let count: Int

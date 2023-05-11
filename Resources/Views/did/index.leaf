@@ -1,12 +1,7 @@
 #extend("templates/search"):
-  #export("status"):
-    <dl>
-      <dt>Known DIDs count</dt>
-      <dd>#(count)</dd>
-    </dl>
-  #endexport
+  #export("kind"): DIDs #endexport
 
-  #export("search"):
+  #export("form"):
     <form action=/did method=get>
       <label>
         DID:
@@ -19,6 +14,5 @@
       </label>
       <button>Search</button>
     </form>
-    #if(message): <p class=message>#(message)</p> #endif
   #endexport
 #endextend

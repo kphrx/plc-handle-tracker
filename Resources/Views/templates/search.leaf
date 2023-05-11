@@ -64,12 +64,16 @@ span[data-prefix] > input {
 
   #export("body"):
   <section id=status>
-    #import("status")
+    <dl>
+      <dt>Known #import("kind") count</dt>
+      <dd>#(count)</dd>
+    </dl>
   </section>
 
   <section id=search>
-    #import("search")
+    #import("form")
+    #if(message): <p class=message>#(message)</p> #endif
+    #import("result")
   </section>
   #endexport
 #endextend
-

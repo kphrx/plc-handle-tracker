@@ -37,7 +37,7 @@ enum HandleSearchResult {
   }
 }
 
-struct HandleIndexContext: BaseContext {
+struct HandleIndexContext: SearchContext {
   let title: String?
   let route: String
   let count: Int
