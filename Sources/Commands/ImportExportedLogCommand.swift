@@ -2,7 +2,7 @@ import Fluent
 import Foundation
 import Vapor
 
-struct ImportExportLogCommand: AsyncCommand {
+struct ImportExportedLogCommand: AsyncCommand {
   struct Signature: CommandSignature {
     @Option(name: "count", short: nil)
     var count: UInt?
