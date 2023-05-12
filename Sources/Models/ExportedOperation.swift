@@ -3,21 +3,29 @@ import FluentPostgresDriver
 import Foundation
 import Vapor
 
-enum OpType: String, Decodable {
+enum CompatibleOperationOrTombstone: Encodable {
+  case create(CreateOperation)
+  case plcOperation(PlcOperation)
+  case plcTombstone(PlcTombstone)
+
+  func encode(to encoder: Encoder) throws {
+    switch self {
+    case .create(let createOp): try createOp.encode(to: encoder)
+    case .plcOperation(let plcOp): try plcOp.encode(to: encoder)
+    case .plcTombstone(let tombstoneOp): try tombstoneOp.encode(to: encoder)
+    }
+  }
+}
+
+enum OpType: String, Content {
   case create
   case plcOperation = "plc_operation"
   case plcTombstone = "plc_tombstone"
 }
 
-protocol CompatibleOperationOrTombstone {
-  var sig: String { get }
-  var type: OpType { get }
-  var prev: String? { get }
-}
-
-struct PlcOperation: CompatibleOperationOrTombstone {
+struct PlcOperation: Encodable {
   let sig: String
-  var type: OpType { return OpType.plcOperation }
+  var type: OpType { return .plcOperation }
   let prev: String?
 
   let services: Services
@@ -25,41 +33,82 @@ struct PlcOperation: CompatibleOperationOrTombstone {
   let alsoKnownAs: [String]
   let rotationKeys: [String]
 
-  struct VerificationMethods: Decodable {
-    var atproto: String
+  struct VerificationMethods: Content {
+    let atproto: String
   }
   let verificationMethods: VerificationMethods
-}
-struct Services: Decodable {
-  struct AtprotoPds: Decodable {
-    var type: String = "AtprotoPersonalDataServer"
-    var endpoint: String
-  }
-  var atprotoPds: AtprotoPds
 
-  enum CodingKeys: String, CodingKey {
+  private enum CodingKeys: String, CodingKey {
+    case sig, type, prev, services, alsoKnownAs, rotationKeys, verificationMethods
+  }
+
+  func encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+    try container.encode(self.sig, forKey: .sig)
+    try container.encode(self.type, forKey: .type)
+    try container.encode(self.prev, forKey: .prev)
+    try container.encode(self.services, forKey: .services)
+    try container.encode(self.alsoKnownAs, forKey: .alsoKnownAs)
+    try container.encode(self.rotationKeys, forKey: .rotationKeys)
+    try container.encode(self.verificationMethods, forKey: .verificationMethods)
+  }
+}
+struct Services: Content {
+  struct AtprotoPds: Content {
+    private(set) var type: String = "AtprotoPersonalDataServer"
+    let endpoint: String
+  }
+  let atprotoPds: AtprotoPds
+
+  private enum CodingKeys: String, CodingKey {
     case atprotoPds = "atproto_pds"
   }
 }
 
-struct CreateOperation: CompatibleOperationOrTombstone {
+struct CreateOperation: Encodable {
   let sig: String
-  var type: OpType { return OpType.create }
+  var type: OpType { return .create }
   var prev: String? { return nil }
 
   let handle: String
   let service: String
   let signingKey: String
   let recoveryKey: String
+
+  private enum CodingKeys: String, CodingKey {
+    case sig, type, prev, handle, service, signingKey, recoveryKey
+  }
+
+  func encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+    try container.encode(self.sig, forKey: .sig)
+    try container.encode(self.type, forKey: .type)
+    try container.encode(self.prev, forKey: .prev)
+    try container.encode(self.handle, forKey: .handle)
+    try container.encode(self.service, forKey: .service)
+    try container.encode(self.signingKey, forKey: .signingKey)
+    try container.encode(self.recoveryKey, forKey: .recoveryKey)
+  }
 }
 
-struct PlcTombstone: CompatibleOperationOrTombstone {
+struct PlcTombstone: Encodable {
   let sig: String
-  var type: OpType { return OpType.plcTombstone }
-  let prev: String?
+  var type: OpType { return .plcTombstone }
+  let prev: String
+
+  private enum CodingKeys: String, CodingKey {
+    case sig, type, prev
+  }
+
+  func encode(to encoder: Encoder) throws {
+    var container = encoder.container(keyedBy: CodingKeys.self)
+    try container.encode(self.sig, forKey: .sig)
+    try container.encode(self.type, forKey: .type)
+    try container.encode(self.prev, forKey: .prev)
+  }
 }
 
-struct ExportedOperation: Decodable {
+struct ExportedOperation: Content {
   var did: String
   var operation: CompatibleOperationOrTombstone
   var cid: String
@@ -82,7 +131,7 @@ struct ExportedOperation: Decodable {
     let verificationMethods: PlcOperation.VerificationMethods?
   }
 
-  enum CodingKeys: String, CodingKey {
+  private enum CodingKeys: String, CodingKey {
     case did
     case operation
     case cid
@@ -100,38 +149,31 @@ struct ExportedOperation: Decodable {
     self.operation = {
       switch operation.type {
       case .create:
-        // It's OK to force unwrap here because we already
-        // know what type the item object is
-        return CreateOperation(
-          sig: operation.sig, handle: operation.handle!, service: operation.service!,
-          signingKey: operation.signingKey!, recoveryKey: operation.recoveryKey!)
+        return .create(
+          .init(
+            sig: operation.sig, handle: operation.handle!, service: operation.service!,
+            signingKey: operation.signingKey!, recoveryKey: operation.recoveryKey!))
       case .plcOperation:
-        return PlcOperation(
-          sig: operation.sig, prev: operation.prev, services: operation.services!,
-          alsoKnownAs: operation.alsoKnownAs!, rotationKeys: operation.rotationKeys!,
-          verificationMethods: operation.verificationMethods!)
-      case .plcTombstone:
-        return PlcTombstone(sig: operation.sig, prev: operation.prev!)
+        return .plcOperation(
+          .init(
+            sig: operation.sig, prev: operation.prev, services: operation.services!,
+            alsoKnownAs: operation.alsoKnownAs!, rotationKeys: operation.rotationKeys!,
+            verificationMethods: operation.verificationMethods!))
+      case .plcTombstone: return .plcTombstone(.init(sig: operation.sig, prev: operation.prev!))
       }
     }()
   }
 
   func normalize(on database: Database) async throws -> Operation {
     let did = try await self.resolve(did: self.did, on: database)
-    switch self.operation.type {
-    case .create:
-      guard let createOp = self.operation as? CreateOperation else {
-        throw "Invalid operation type"
-      }
+    switch self.operation {
+    case .create(let createOp):
       async let handle = self.resolve(handle: createOp.handle, on: database)
       async let pds = self.resolve(serviceEndpoint: createOp.service, on: database)
       return try Operation(
         cid: self.cid, did: did, nullified: self.nullified,
         createdAt: self.createdAt, handle: try await handle, pds: try await pds)
-    case .plcOperation:
-      guard let plcOp = self.operation as? PlcOperation else {
-        throw "Invalid operation type"
-      }
+    case .plcOperation(let plcOp):
       guard
         let handleString = plcOp.alsoKnownAs.first(where: { $0.hasPrefix("at://") })?
           .replacingOccurrences(of: "at://", with: "")
@@ -150,11 +192,8 @@ struct ExportedOperation: Decodable {
       return try Operation(
         cid: self.cid, did: did, nullified: self.nullified, createdAt: self.createdAt, prev: prev,
         handle: try await handle, pds: try await pds)
-    case .plcTombstone:
-      guard let tombstoneOp = self.operation as? PlcTombstone else {
-        throw "Invalid operation type"
-      }
-      let prev = try await self.resolve(prev: tombstoneOp.prev!, on: database)
+    case .plcTombstone(let tombstoneOp):
+      let prev = try await self.resolve(prev: tombstoneOp.prev, on: database)
       return try Operation(
         cid: self.cid, did: did, nullified: self.nullified,
         createdAt: self.createdAt, prev: prev)
@@ -212,7 +251,7 @@ struct ExportedOperation: Decodable {
     return service
   }
 
-  func resolve(prev cid: String, on database: Database) async throws -> Operation? {
+  func resolve(prev cid: String, on database: Database) async throws -> Operation {
     guard let operation = try await Operation.find(cid, on: database) else {
       throw "Unknown operation"
     }

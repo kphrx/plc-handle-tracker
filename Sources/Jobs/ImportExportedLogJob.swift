@@ -5,20 +5,17 @@ import Vapor
 
 struct ImportExportedLogJob: AsyncJob {
   struct Payload: Content {
-    let json: String
+    let ops: [ExportedOperation]
     let historyId: UUID
   }
 
   func dequeue(_ context: QueueContext, _ payload: Payload) async throws {
     let app = context.application
-    let decoder = try ContentConfiguration.global.requireDecoder(for: .json)
-    let json = try decoder.decode(
-      [ExportedOperation].self, from: .init(string: payload.json), headers: [:])
-    if json.isEmpty {
+    if payload.ops.isEmpty {
       throw "Empty export"
     }
     try await withThrowingTaskGroup(of: Void.self) { [self] group in
-      for tree in try treeSort(json) {
+      for tree in try treeSort(payload.ops) {
         group.addTask { try await self.insert(ops: tree, on: app.db) }
       }
     }
