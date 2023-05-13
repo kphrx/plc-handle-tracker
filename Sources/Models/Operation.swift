@@ -31,11 +31,11 @@ final class Operation: Model, Content {
   init() {}
 
   init(
-    cid id: String, did: Did, nullified: Bool, createdAt: Date,
+    cid: String, did: String, nullified: Bool, createdAt: Date,
     prev: Operation? = nil, handle: Handle? = nil, pds: PersonalDataServer? = nil
   ) throws {
-    self.id = id
-    self.$did.id = try did.requireID()
+    self.id = cid
+    self.$did.id = did
     self.nullified = nullified
     self.createdAt = createdAt
     self.$prev.id = try prev?.requireID()

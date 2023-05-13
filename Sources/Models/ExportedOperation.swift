@@ -165,13 +165,13 @@ struct ExportedOperation: Content {
   }
 
   func normalize(prev prevOp: Operation? = nil, on database: Database) async throws -> Operation {
-    let did = try await self.resolve(did: self.did, on: database)
     switch self.operation {
     case .create(let createOp):
       async let handle = self.resolve(handle: createOp.handle, on: database)
       async let pds = self.resolve(serviceEndpoint: createOp.service, on: database)
+      try await self.create(did: self.did, on: database)
       return try Operation(
-        cid: self.cid, did: did, nullified: self.nullified,
+        cid: self.cid, did: self.did, nullified: self.nullified,
         createdAt: self.createdAt, handle: try await handle, pds: try await pds)
     case .plcOperation(let plcOp):
       guard
@@ -180,20 +180,22 @@ struct ExportedOperation: Content {
       else {
         throw "Not found handle"
       }
+      async let handle = self.resolve(handle: handleString, on: database)
+      async let pds = self.resolve(
+        serviceEndpoint: plcOp.services.atprotoPds.endpoint, on: database)
       let prev: Operation?
       if let prevOp {
         prev = prevOp
       } else {
         switch plcOp.prev {
         case .some(let cid): prev = try await self.resolve(prev: cid, on: database)
-        case .none: prev = nil
+        case .none:
+          try await self.create(did: self.did, on: database)
+          prev = nil
         }
       }
-      async let handle = self.resolve(handle: handleString, on: database)
-      async let pds = self.resolve(
-        serviceEndpoint: plcOp.services.atprotoPds.endpoint, on: database)
       return try Operation(
-        cid: self.cid, did: did, nullified: self.nullified, createdAt: self.createdAt, prev: prev,
+        cid: self.cid, did: self.did, nullified: self.nullified, createdAt: self.createdAt, prev: prev,
         handle: try await handle, pds: try await pds)
     case .plcTombstone(let tombstoneOp):
       let prev: Operation
@@ -203,27 +205,25 @@ struct ExportedOperation: Content {
         prev = try await self.resolve(prev: tombstoneOp.prev, on: database)
       }
       return try Operation(
-        cid: self.cid, did: did, nullified: self.nullified,
+        cid: self.cid, did: self.did, nullified: self.nullified,
         createdAt: self.createdAt, prev: prev)
     }
   }
 
-  func resolve(did string: String, on database: Database) async throws -> Did {
-    guard let did = try await Did.find(string, on: database) else {
-      let did = Did(did: string)
-      do {
-        try await did.create(on: database)
-      } catch let error as PostgresError where error.code == .uniqueViolation {
-        return try await self.resolve(did: string, on: database)
-      } catch {
-        throw error
-      }
-      return did
+  private func create(did string: String, on database: Database) async throws {
+    if try await Did.find(string, on: database) != nil {
+      return
     }
-    return did
+    do {
+      try await Did(did: string).create(on: database)
+    } catch let error as PostgresError where error.code == .uniqueViolation {
+      return
+    } catch {
+      throw error
+    }
   }
 
-  func resolve(handle string: String, on database: Database) async throws -> Handle {
+  private func resolve(handle string: String, on database: Database) async throws -> Handle {
     guard let handle = try await Handle.query(on: database).filter(\.$handle == string).first()
     else {
       let handle = Handle(handle: string)
@@ -239,7 +239,7 @@ struct ExportedOperation: Content {
     return handle
   }
 
-  func resolve(serviceEndpoint string: String, on database: Database) async throws
+  private func resolve(serviceEndpoint string: String, on database: Database) async throws
     -> PersonalDataServer
   {
     guard
@@ -259,7 +259,7 @@ struct ExportedOperation: Content {
     return service
   }
 
-  func resolve(prev cid: String, on database: Database) async throws -> Operation {
+  private func resolve(prev cid: String, on database: Database) async throws -> Operation {
     guard let operation = try await Operation.find(cid, on: database) else {
       throw "Unknown operation"
     }
