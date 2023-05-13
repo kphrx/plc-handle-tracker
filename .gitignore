@@ -11,3 +11,6 @@
 .swiftpm
 
 .build/
+
+# contains only example
+/compose.yml
