@@ -164,7 +164,7 @@ struct ExportedOperation: Content {
     }()
   }
 
-  func normalize(on database: Database) async throws -> Operation {
+  func normalize(prev prevOp: Operation? = nil, on database: Database) async throws -> Operation {
     let did = try await self.resolve(did: self.did, on: database)
     switch self.operation {
     case .create(let createOp):
@@ -180,12 +180,15 @@ struct ExportedOperation: Content {
       else {
         throw "Not found handle"
       }
-      let prev = try await { (_ cid: String?) -> Operation? in
-        guard let cid else {
-          return nil
+      let prev: Operation?
+      if let prevOp {
+        prev = prevOp
+      } else {
+        switch plcOp.prev {
+        case .some(let cid): prev = try await self.resolve(prev: cid, on: database)
+        case .none: prev = nil
         }
-        return try await self.resolve(prev: cid, on: database)
-      }(plcOp.prev)
+      }
       async let handle = self.resolve(handle: handleString, on: database)
       async let pds = self.resolve(
         serviceEndpoint: plcOp.services.atprotoPds.endpoint, on: database)
@@ -193,7 +196,12 @@ struct ExportedOperation: Content {
         cid: self.cid, did: did, nullified: self.nullified, createdAt: self.createdAt, prev: prev,
         handle: try await handle, pds: try await pds)
     case .plcTombstone(let tombstoneOp):
-      let prev = try await self.resolve(prev: tombstoneOp.prev, on: database)
+      let prev: Operation
+      if let prevOp {
+        prev = prevOp
+      } else {
+        prev = try await self.resolve(prev: tombstoneOp.prev, on: database)
+      }
       return try Operation(
         cid: self.cid, did: did, nullified: self.nullified,
         createdAt: self.createdAt, prev: prev)

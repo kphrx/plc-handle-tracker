@@ -16,19 +16,26 @@ struct ImportExportedLogJob: AsyncJob {
     }
     try await withThrowingTaskGroup(of: Void.self) { [self] group in
       for tree in try treeSort(payload.ops) {
-        group.addTask { try await self.insert(ops: tree, on: app.db) }
+        group.addTask {
+          try await app.db.transaction { transaction in
+            try await self.insert(ops: tree, on: transaction)
+          }
+        }
       }
     }
     try await self.pollingCompleted(app, historyId: payload.historyId)
   }
 
   private func insert(ops operations: [ExportedOperation], on database: Database) async throws {
+    var prevOp: Operation?
     for exportedOp in operations {
-      if try await Operation.find(exportedOp.cid, on: database) != nil {
+      if let operation = try await Operation.find(exportedOp.cid, on: database) {
+        prevOp = operation
         continue
       }
-      let operation = try await exportedOp.normalize(on: database)
+      let operation = try await exportedOp.normalize(prev: prevOp, on: database)
       try await operation.create(on: database)
+      prevOp = operation
     }
   }
 

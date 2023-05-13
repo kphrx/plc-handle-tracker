@@ -40,8 +40,8 @@ func databaseConfig(_ app: Application) {
         ?? PostgresConfiguration.ianaPortNumber,
       username: Environment.get("DATABASE_USERNAME") ?? "vapor_username",
       password: Environment.get("DATABASE_PASSWORD") ?? "vapor_password",
-      database: Environment.get("DATABASE_NAME") ?? "vapor_database"
-    ), as: .psql)
+      database: Environment.get("DATABASE_NAME") ?? "vapor_database",
+      connectionPoolTimeout: .seconds(60)), as: .psql)
 
   // register migrations
   migrations(app)
