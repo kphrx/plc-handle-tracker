@@ -5,4 +5,5 @@ func jobs(_ app: Application) {
   app.queues.add(FetchDidJob())
   app.queues.add(ImportExportedLogJob())
   app.queues.schedule(PollingPlcServerExportJob()).hourly().at(21)
+  app.queues.add(StorePollingJobStatus(on: app.db))
 }

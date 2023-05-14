@@ -195,8 +195,8 @@ struct ExportedOperation: Content {
         }
       }
       return try Operation(
-        cid: self.cid, did: self.did, nullified: self.nullified, createdAt: self.createdAt, prev: prev,
-        handle: try await handle, pds: try await pds)
+        cid: self.cid, did: self.did, nullified: self.nullified, createdAt: self.createdAt,
+        prev: prev, handle: try await handle, pds: try await pds)
     case .plcTombstone(let tombstoneOp):
       let prev: Operation
       if let prevOp {

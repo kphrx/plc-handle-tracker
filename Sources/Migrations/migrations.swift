@@ -10,4 +10,5 @@ func migrations(_ app: Application) {
   app.migrations.add(AddFailedColumnToPollingHistoryTable())
   app.migrations.add(AddCompletedColumnToPollingHistoryTable())
   app.migrations.add(ChangePrimaryKeyToNaturalKeyOfDidAndCid())
+  app.migrations.add(CreatePollingJobStatusesTable())
 }
