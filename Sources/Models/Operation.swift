@@ -13,8 +13,8 @@ final class Operation: Model, Content {
   @Field(key: "nullified")
   var nullified: Bool
 
-  @Field(key: "created_at")
-  var createdAt: Date
+  @Timestamp(key: "created_at", on: .none)
+  var createdAt: Date!
 
   @OptionalParent(key: "prev")
   var prev: Operation?

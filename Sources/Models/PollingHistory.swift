@@ -16,11 +16,11 @@ final class PollingHistory: Model, Content {
   @Field(key: "failed")
   var failed: Bool
 
-  @Field(key: "created_at")
-  var createdAt: Date
+  @Timestamp(key: "created_at", on: .none)
+  var createdAt: Date!
 
   @Timestamp(key: "inserted_at", on: .create)
-  var insertedAt: Date?
+  var insertedAt: Date!
 
   init() {}
 
