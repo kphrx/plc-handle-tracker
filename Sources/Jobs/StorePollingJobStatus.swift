@@ -1,5 +1,6 @@
 import Fluent
 import Queues
+import Foundation
 
 struct StorePollingJobStatus: AsyncJobEventDelegate {
   typealias Job = ImportExportedLogJob
