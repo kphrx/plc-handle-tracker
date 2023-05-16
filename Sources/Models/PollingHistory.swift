@@ -2,6 +2,26 @@ import Fluent
 import Vapor
 
 final class PollingHistory: Model, Content {
+  static func getLatestWithoutErrors(on database: Database) async throws -> PollingHistory? {
+    let errors = try await PollingJobStatus.query(on: database).filter(\.$status == .error)
+      .all(\.$history.$id)
+    return try await PollingHistory.query(on: database).filter(\.$failed == false).filter(
+      \.$id !~ errors
+    ).sort(\.$insertedAt, .descending).first()
+  }
+
+  static func getLatestCompleted(on database: Database) async throws -> PollingHistory? {
+    let errorOrRunnings = try await PollingJobStatus.query(on: database).filter(
+      \.$status != .success
+    )
+    .all(\.$history.$id)
+    return try await PollingHistory.query(on: database).filter(\.$failed == false).filter(
+      \.$cid != .null
+    ).filter(\.$createdAt != .null).group(.or) {
+      $0.filter(\.$completed == true).filter(\.$id !~ errorOrRunnings)
+    }.sort(\.$insertedAt, .descending).first()
+  }
+
   static let schema = "polling_history"
 
   @ID(key: .id)
@@ -25,24 +45,6 @@ final class PollingHistory: Model, Content {
   @Timestamp(key: "inserted_at", on: .create)
   var insertedAt: Date!
 
-  var running: Bool {
-    get throws {
-      if self.completed || self.failed {
-        return false
-      }
-      if self.cid == nil || self.createdAt == nil {
-        return true
-      }
-      guard self.$statuses.value != nil else {
-        throw "require to load statuses children"
-      }
-      if self.statuses.isEmpty {
-        return true
-      }
-      return self.statuses.contains(where: { $0.status == .queued || $0.status == .running })
-    }
-  }
-
   init() {
     self.completed = false
     self.failed = false
@@ -54,5 +56,18 @@ final class PollingHistory: Model, Content {
     self.completed = false
     self.failed = false
     self.createdAt = createdAt
+  }
+
+  func running(on database: Database) async throws -> Bool {
+    if self.completed || self.failed {
+      return false
+    }
+    if self.cid == nil || self.createdAt == nil {
+      return true
+    }
+    if self.$statuses.value == nil {
+      try await self.$statuses.load(on: database)
+    }
+    return self.statuses.contains(where: { $0.status == .queued || $0.status == .running })
   }
 }

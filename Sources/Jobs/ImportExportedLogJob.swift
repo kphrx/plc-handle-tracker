@@ -14,14 +14,8 @@ struct ImportExportedLogJob: AsyncJob {
     if payload.ops.isEmpty {
       throw "Empty export"
     }
-    try await withThrowingTaskGroup(of: Void.self) { [self] group in
-      for tree in try treeSort(payload.ops) {
-        group.addTask {
-          try await app.db.transaction { transaction in
-            try await self.insert(ops: tree, on: transaction)
-          }
-        }
-      }
+    try await app.db.transaction { transaction in
+      try await self.insert(ops: payload.ops, on: transaction)
     }
   }
 

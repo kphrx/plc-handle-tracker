@@ -5,17 +5,10 @@ import Vapor
 
 struct PollingPlcServerExportJob: AsyncJob {
   static func lastPolledDateWithoutFailure(on database: Database) async throws -> Date? {
-    let errors = try await PollingJobStatus.query(on: database).filter(\.$status == .error).all(
-      \.$history.$id)
-    guard
-      let last = try await PollingHistory.query(on: database).filter(\.$id !~ errors).filter(
-        \.$failed == false
-      ).sort(\.$insertedAt, .descending).first()
-    else {
+    guard let last = try await PollingHistory.getLatestWithoutErrors(on: database) else {
       return nil
     }
-    try await last.$statuses.load(on: database)
-    if try last.running {
+    if try await last.running(on: database) {
       throw "latest polling job not completed"
     }
     return last.createdAt
@@ -41,11 +34,13 @@ struct PollingPlcServerExportJob: AsyncJob {
       return dateFormatter.string(from: date)
     }
     let exportedLog = try await fetchExportedLog(app, after: after, count: payload.count)
+    for tree in try treeSort(exportedLog) {
+      try await app.queues.queue.dispatch(
+        ImportExportedLogJob.self,
+        .init(ops: tree, historyId: payload.historyId)
+      )
+    }
     try await self.log(to: payload.historyId, lastOp: exportedLog.last, on: app.db)
-    try await app.queues.queue.dispatch(
-      ImportExportedLogJob.self,
-      .init(ops: exportedLog, historyId: payload.historyId)
-    )
   }
 
   private func fetchExportedLog(_ app: Application, after: String?, count: UInt) async throws
