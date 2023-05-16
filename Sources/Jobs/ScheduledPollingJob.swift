@@ -10,7 +10,7 @@ struct ScheduledPollingJob: AsyncScheduledJob {
       try await history.create(on: app.db)
       try await app.queues.queue.dispatch(
         PollingPlcServerExportJob.self,
-        .init(after: after, history: history)
+        .init(after: after, count: 500, history: history)
       )
     } catch {
       app.logger.report(error: error)
