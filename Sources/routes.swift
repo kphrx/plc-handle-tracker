@@ -2,7 +2,7 @@ import Fluent
 import Vapor
 
 struct IndexContext: BaseContext {
-  private(set) var title: String? = nil
+  private(set) var title: String?
   let route: String
   let latestImported: Date?
   let lastImport: Date?
@@ -10,10 +10,17 @@ struct IndexContext: BaseContext {
 
 func routes(_ app: Application) throws {
   app.get { req -> View in
-    let latestPolling = try await PollingHistory.query(on: req.db).filter(\.$failed == false)
-      .filter(\.$completed == true).sort(\.$insertedAt, .descending).field(\.$createdAt).field(
-        \.$insertedAt
-      ).first()
+    let completedIds = try await PollingJobStatus.query(on: req.db).filter(\.$status == .success)
+      .all(\.$history.$id)
+    let notCompletedIds = try await PollingJobStatus.query(on: req.db).filter(\.$status != .success)
+      .all(\.$history.$id)
+    let latestPolling = try await PollingHistory.query(on: req.db).filter(\.$failed == false).group(
+      .or
+    ) {
+      $0.filter(\.$completed == true).group(.and) {
+        $0.filter(\.$id !~ notCompletedIds).filter(\.$id ~~ completedIds)
+      }
+    }.sort(\.$insertedAt, .descending).field(\.$createdAt).field(\.$insertedAt).first()
     return try await req.view.render(
       "index",
       IndexContext(

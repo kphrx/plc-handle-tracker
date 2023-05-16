@@ -5,14 +5,17 @@ import Vapor
 
 struct PollingPlcServerExportJob: AsyncJob {
   static func lastPolledDateWithoutFailure(on database: Database) async throws -> Date? {
+    let errors = try await PollingJobStatus.query(on: database).filter(\.$status == .error).all(
+      \.$history.$id)
     guard
-      let last = try await PollingHistory.query(on: database).filter(\.$failed == false).sort(
-        \.$insertedAt, .descending
-      ).first()
+      let last = try await PollingHistory.query(on: database).filter(\.$id !~ errors).filter(
+        \.$failed == false
+      ).sort(\.$insertedAt, .descending).first()
     else {
       return nil
     }
-    guard last.completed else {
+    try await last.$statuses.load(on: database)
+    if try last.running {
       throw "latest polling job not completed"
     }
     return last.createdAt

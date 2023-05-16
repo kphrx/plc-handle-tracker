@@ -10,6 +10,9 @@ final class PollingHistory: Model, Content {
   @Field(key: "cid")
   var cid: String
 
+  @Children(for: \.$history)
+  var statuses: [PollingJobStatus]
+
   @Field(key: "completed")
   var completed: Bool
 
@@ -21,6 +24,21 @@ final class PollingHistory: Model, Content {
 
   @Timestamp(key: "inserted_at", on: .create)
   var insertedAt: Date!
+
+  var running: Bool {
+    get throws {
+      if self.completed || self.failed {
+        return false
+      }
+      guard self.$statuses.value != nil else {
+        throw "require to load statuses children"
+      }
+      if self.statuses.isEmpty {
+        return true
+      }
+      return self.statuses.contains(where: { $0.status == .queued || $0.status == .running })
+    }
+  }
 
   init() {}
 
