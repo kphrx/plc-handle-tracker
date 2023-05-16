@@ -3,40 +3,60 @@ import Foundation
 import Queues
 import Vapor
 
-struct PollingPlcServerExportJob: AsyncScheduledJob {
-  func run(context: QueueContext) async throws {
+struct PollingPlcServerExportJob: AsyncJob {
+  static func lastPolledDateWithoutFailure(on database: Database) async throws -> Date? {
+    guard
+      let last = try await PollingHistory.query(on: database).filter(\.$failed == false).sort(
+        \.$insertedAt, .descending
+      ).first()
+    else {
+      return nil
+    }
+    guard last.completed else {
+      throw "latest polling job not completed"
+    }
+    return last.createdAt
+  }
+
+  struct Payload: Content {
+    let after: Date?
+    let count: UInt
+
+    init(after: Date?, count: UInt = 1000) {
+      self.after = after
+      self.count = count
+    }
+  }
+
+  func dequeue(_ context: QueueContext, _ payload: Payload) async throws {
     let app = context.application
-    var after: String? = nil
-    if let last = try await PollingHistory.query(on: app.db).filter(\.$failed == false).sort(
-      \.$insertedAt, .descending
-    ).first() {
-      guard last.completed else {
-        return app.logger.warning("latest polling job not completed")
-      }
+    let after: String? = payload.after.map { date in
       let dateFormatter = ISO8601DateFormatter()
       dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-      after = dateFormatter.string(from: last.createdAt)
+      return dateFormatter.string(from: date)
     }
-    let exportedLog = try await fetchExportedLog(app, after: after)
-    let pollingHistory = try await self.logToPollingHistory(app, lastOp: exportedLog.last)
+    let exportedLog = try await fetchExportedLog(app, after: after, count: payload.count)
+    let pollingHistory = try await self.logToPollingHistory(lastOp: exportedLog.last, on: app.db)
     do {
       try await app.queues.queue.dispatch(
         ImportExportedLogJob.self,
         .init(ops: exportedLog, historyId: try pollingHistory.requireID())
       )
     } catch {
-      app.logger.report(error: error)
       pollingHistory.failed = true
       try await pollingHistory.save(on: app.db)
+      throw error
     }
   }
 
-  private func fetchExportedLog(_ app: Application, after: String?) async throws
+  private func fetchExportedLog(_ app: Application, after: String?, count: UInt) async throws
     -> [ExportedOperation]
   {
     var url: URI = "https://plc.directory/export"
     if let after {
-      url.query = "after=\(after)"
+      url.query = "count=\(count)&after=\(after)"
+    } else {
+      url.query = "count=\(count)"
     }
     let response = try await app.client.get(url)
     let textDecoder = try ContentConfiguration.global.requireDecoder(for: .plainText)
@@ -48,14 +68,18 @@ struct PollingPlcServerExportJob: AsyncScheduledJob {
       headers: [:])
   }
 
-  private func logToPollingHistory(_ app: Application, lastOp: ExportedOperation?) async throws
+  private func logToPollingHistory(lastOp: ExportedOperation?, on database: Database) async throws
     -> PollingHistory
   {
     guard let lastOp else {
       throw "Empty export"
     }
     let pollingHistory = PollingHistory(cid: lastOp.cid, createdAt: lastOp.createdAt)
-    try await pollingHistory.create(on: app.db)
+    try await pollingHistory.create(on: database)
     return pollingHistory
+  }
+
+  func error(_ context: QueueContext, _ error: Error, _ payload: Payload) async throws {
+    context.application.logger.report(error: error)
   }
 }

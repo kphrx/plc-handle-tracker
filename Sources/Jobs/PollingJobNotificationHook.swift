@@ -1,8 +1,8 @@
 import Fluent
-import Queues
 import Foundation
+import Queues
 
-struct StorePollingJobStatus: AsyncJobEventDelegate {
+struct PollingJobNotificationHook: AsyncJobEventDelegate {
   typealias Job = ImportExportedLogJob
 
   let database: Database
