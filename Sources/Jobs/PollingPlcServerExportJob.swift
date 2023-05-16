@@ -24,10 +24,12 @@ struct PollingPlcServerExportJob: AsyncJob {
   struct Payload: Content {
     let after: Date?
     let count: UInt
+    let historyId: UUID
 
-    init(after: Date?, count: UInt = 1000) {
+    init(after: Date?, count: UInt = 1000, history: PollingHistory) throws {
       self.after = after
       self.count = count
+      self.historyId = try history.requireID()
     }
   }
 
@@ -39,17 +41,11 @@ struct PollingPlcServerExportJob: AsyncJob {
       return dateFormatter.string(from: date)
     }
     let exportedLog = try await fetchExportedLog(app, after: after, count: payload.count)
-    let pollingHistory = try await self.logToPollingHistory(lastOp: exportedLog.last, on: app.db)
-    do {
-      try await app.queues.queue.dispatch(
-        ImportExportedLogJob.self,
-        .init(ops: exportedLog, historyId: try pollingHistory.requireID())
-      )
-    } catch {
-      pollingHistory.failed = true
-      try await pollingHistory.save(on: app.db)
-      throw error
-    }
+    try await self.log(to: payload.historyId, lastOp: exportedLog.last, on: app.db)
+    try await app.queues.queue.dispatch(
+      ImportExportedLogJob.self,
+      .init(ops: exportedLog, historyId: payload.historyId)
+    )
   }
 
   private func fetchExportedLog(_ app: Application, after: String?, count: UInt) async throws
@@ -71,18 +67,24 @@ struct PollingPlcServerExportJob: AsyncJob {
       headers: [:])
   }
 
-  private func logToPollingHistory(lastOp: ExportedOperation?, on database: Database) async throws
-    -> PollingHistory
+  private func log(to historyId: UUID, lastOp: ExportedOperation?, on database: Database)
+    async throws
   {
-    guard let lastOp else {
+    guard let lastOp, let history = try await PollingHistory.find(historyId, on: database) else {
       throw "Empty export"
     }
-    let pollingHistory = PollingHistory(cid: lastOp.cid, createdAt: lastOp.createdAt)
-    try await pollingHistory.create(on: database)
-    return pollingHistory
+    history.cid = lastOp.cid
+    history.createdAt = lastOp.createdAt
+    return try await history.update(on: database)
   }
 
   func error(_ context: QueueContext, _ error: Error, _ payload: Payload) async throws {
-    context.application.logger.report(error: error)
+    let app = context.application
+    app.logger.report(error: error)
+    guard let history = try await PollingHistory.find(payload.historyId, on: app.db) else {
+      return
+    }
+    history.failed = true
+    try await history.update(on: app.db)
   }
 }

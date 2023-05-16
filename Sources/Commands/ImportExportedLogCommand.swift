@@ -12,10 +12,12 @@ struct ImportExportedLogCommand: AsyncCommand {
 
   func run(using context: CommandContext, signature: Signature) async throws {
     let app = context.application
-    let after: Date? = try await PollingPlcServerExportJob.lastPolledDateWithoutFailure(on: app.db)
+    let after = try await PollingPlcServerExportJob.lastPolledDateWithoutFailure(on: app.db)
+    let history = PollingHistory()
+    try await history.create(on: app.db)
     try await app.queues.queue.dispatch(
       PollingPlcServerExportJob.self,
-      .init(after: after, count: signature.count ?? 1000)
+      .init(after: after, count: signature.count ?? 1000, history: history)
     )
     if let after {
       context.console.print("Queued fetching export log, after \(after)")

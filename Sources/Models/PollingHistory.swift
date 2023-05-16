@@ -7,8 +7,8 @@ final class PollingHistory: Model, Content {
   @ID(key: .id)
   var id: UUID?
 
-  @Field(key: "cid")
-  var cid: String
+  @OptionalField(key: "cid")
+  var cid: String?
 
   @Children(for: \.$history)
   var statuses: [PollingJobStatus]
@@ -20,7 +20,7 @@ final class PollingHistory: Model, Content {
   var failed: Bool
 
   @Timestamp(key: "created_at", on: .none)
-  var createdAt: Date!
+  var createdAt: Date?
 
   @Timestamp(key: "inserted_at", on: .create)
   var insertedAt: Date!
@@ -29,6 +29,9 @@ final class PollingHistory: Model, Content {
     get throws {
       if self.completed || self.failed {
         return false
+      }
+      if self.cid == nil || self.createdAt == nil {
+        return true
       }
       guard self.$statuses.value != nil else {
         throw "require to load statuses children"
@@ -40,7 +43,10 @@ final class PollingHistory: Model, Content {
     }
   }
 
-  init() {}
+  init() {
+    self.completed = false
+    self.failed = false
+  }
 
   init(id: UUID? = nil, cid: String, createdAt: Date) {
     self.id = id
