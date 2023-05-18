@@ -17,7 +17,8 @@ struct PollingJobNotificationHook: AsyncJobEventDelegate {
     }
     let payload = try Job.parsePayload(job.payload)
     try await PollingJobStatus(
-      id: jobId, historyId: payload.historyId, dispatchTimestamp: job.queuedAt
+      id: jobId, historyId: payload.historyId, did: payload.ops.first.map { $0.did },
+      dispatchTimestamp: job.queuedAt
     ).create(on: self.database)
   }
 

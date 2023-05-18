@@ -13,6 +13,9 @@ final class PollingJobStatus: Model, Content {
   @Field(key: "status")
   var status: Status
 
+  @OptionalField(key: "did")
+  var did: String?
+
   @Timestamp(key: "queued_at", on: .none)
   var queuedAt: Date!
 
@@ -34,9 +37,10 @@ final class PollingJobStatus: Model, Content {
 
   init() {}
 
-  init(id uuid: UUID, historyId: UUID, dispatchTimestamp queuedAt: Date) {
+  init(id uuid: UUID, historyId: UUID, did: String?, dispatchTimestamp queuedAt: Date) {
     self.id = uuid
     self.$history.id = historyId
+    self.did = did
     self.status = .queued
     self.queuedAt = queuedAt
   }
