@@ -3,6 +3,10 @@ import FluentPostgresDriver
 import Foundation
 import Vapor
 
+enum OpParseError: Error {
+  case notUsedInAtproto(String)
+}
+
 enum CompatibleOperationOrTombstone: Encodable {
   case create(CreateOperation)
   case plcOperation(PlcOperation)
@@ -54,11 +58,11 @@ struct PlcOperation: Encodable {
   }
 }
 struct Services: Content {
-  struct AtprotoPds: Content {
-    private(set) var type: String = "AtprotoPersonalDataServer"
+  struct Service: Content {
+    let type: String /* AtprotoPersonalDataServer */
     let endpoint: String
   }
-  let atprotoPds: AtprotoPds
+  let atprotoPds: Service
 
   private enum CodingKeys: String, CodingKey {
     case atprotoPds = "atproto_pds"
@@ -125,10 +129,10 @@ struct ExportedOperation: Content {
     let signingKey: String?
     let recoveryKey: String?
 
-    let services: Services?
+    let services: [String: Services.Service]?
     let alsoKnownAs: [String]?
     let rotationKeys: [String]?
-    let verificationMethods: PlcOperation.VerificationMethods?
+    let verificationMethods: [String: String]?
   }
 
   private enum CodingKeys: String, CodingKey {
@@ -146,22 +150,27 @@ struct ExportedOperation: Content {
     self.nullified = try container.decode(Bool.self, forKey: .nullified)
     self.createdAt = try container.decode(Date.self, forKey: .createdAt)
     let operation = try container.decode(GenericOperaion.self, forKey: .operation)
-    self.operation = {
-      switch operation.type {
-      case .create:
-        return .create(
-          .init(
-            sig: operation.sig, handle: operation.handle!, service: operation.service!,
-            signingKey: operation.signingKey!, recoveryKey: operation.recoveryKey!))
-      case .plcOperation:
-        return .plcOperation(
-          .init(
-            sig: operation.sig, prev: operation.prev, services: operation.services!,
-            alsoKnownAs: operation.alsoKnownAs!, rotationKeys: operation.rotationKeys!,
-            verificationMethods: operation.verificationMethods!))
-      case .plcTombstone: return .plcTombstone(.init(sig: operation.sig, prev: operation.prev!))
+    switch operation.type {
+    case .create:
+      self.operation = .create(
+        .init(
+          sig: operation.sig, handle: operation.handle!, service: operation.service!,
+          signingKey: operation.signingKey!, recoveryKey: operation.recoveryKey!))
+    case .plcOperation:
+      guard let signingKey = operation.verificationMethods?["atproto"],
+        let atprotoPds = operation.services?["atproto_pds"],
+        atprotoPds.type == "AtprotoPersonalDataServer"
+      else {
+        throw OpParseError.notUsedInAtproto(self.did)
       }
-    }()
+      self.operation = .plcOperation(
+        .init(
+          sig: operation.sig, prev: operation.prev, services: Services(atprotoPds: atprotoPds),
+          alsoKnownAs: operation.alsoKnownAs!, rotationKeys: operation.rotationKeys!,
+          verificationMethods: PlcOperation.VerificationMethods(atproto: signingKey)))
+    case .plcTombstone:
+      self.operation = .plcTombstone(.init(sig: operation.sig, prev: operation.prev!))
+    }
   }
 
   func normalize(prev prevOp: Operation? = nil, on database: Database) async throws -> Operation {

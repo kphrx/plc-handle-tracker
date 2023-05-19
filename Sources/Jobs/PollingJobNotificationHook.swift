@@ -51,7 +51,11 @@ struct PollingJobNotificationHook: AsyncJobEventDelegate {
       return
     }
     jobStatus.completedAt = Date()
-    jobStatus.status = .error
+    if try await BannedDid.find(jobStatus.did, on: database) != nil {
+      jobStatus.status = .banned
+    } else {
+      jobStatus.status = .error
+    }
     try await jobStatus.update(on: self.database)
   }
 }

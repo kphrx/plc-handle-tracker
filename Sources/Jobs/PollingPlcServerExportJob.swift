@@ -57,9 +57,20 @@ struct PollingPlcServerExportJob: AsyncJob {
     let jsonDecoder = try ContentConfiguration.global.requireDecoder(for: .json)
     let jsonLines = try response.content.decode(String.self, using: textDecoder).split(
       separator: "\n")
-    return try jsonDecoder.decode(
-      [ExportedOperation].self, from: .init(string: "[\(jsonLines.joined(separator: ","))]"),
-      headers: [:])
+    var bannedDids: [String] = []
+    let ops = try jsonLines.compactMap { json in
+      do {
+        return try jsonDecoder.decode(
+          ExportedOperation.self, from: .init(string: String(json)), headers: [:])
+      } catch OpParseError.notUsedInAtproto(let did) {
+        bannedDids.append(did)
+        return nil
+      }
+    }
+    for did in bannedDids {
+      try? await BannedDid(did: did).create(on: app.db)
+    }
+    return ops
   }
 
   private func log(to historyId: UUID, lastOp: ExportedOperation?, on database: Database)

@@ -32,7 +32,7 @@ final class PollingJobStatus: Model, Content {
   var updatedAt: Date!
 
   enum Status: Int16, CaseIterable, Codable {
-    case queued, running, success, error
+    case queued, running, success, error, banned
   }
 
   init() {}

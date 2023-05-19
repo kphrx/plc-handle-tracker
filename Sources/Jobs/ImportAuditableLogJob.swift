@@ -16,6 +16,10 @@ struct ImportAuditableLogJob: AsyncJob {
     try await app.db.transaction { transaction in
       try await self.insert(ops: ops, on: transaction)
     }
+    try? await BannedDid.query(on: app.db).filter(\.$id == payload).delete()
+    try? await PollingJobStatus.query(on: app.db).set(\.$status, to: .success).filter(
+      \.$did == payload
+    ).group(.or) { $0.filter(\.$status == .error).filter(\.$status == .banned) }.update()
   }
 
   private func insert(ops operations: [ExportedOperation], on database: Database) async throws {
