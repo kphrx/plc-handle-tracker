@@ -146,8 +146,11 @@ struct DidController: RouteCollection {
       }
       throw Abort(.notFound)
     }
+    if didPlc.operations.isEmpty {
+      throw Abort(.notFound, reason: "Operation not stored")
+    }
     guard let operations = try treeSort(didPlc.operations).first else {
-      throw "Broken operation tree"
+      throw Abort(.internalServerError, reason: "Broken operation tree")
     }
     let updateHandleOps = try onlyUpdateHandle(op: operations).map {
       DidShowContext.UpdateHandleOp(op: $0)

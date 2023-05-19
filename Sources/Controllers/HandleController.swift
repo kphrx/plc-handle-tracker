@@ -124,9 +124,9 @@ struct HandleController: RouteCollection {
     guard
       let handle = try await Handle.query(on: req.db).filter(\.$handle == handleName).with(
         \.$operations,
-        { operations in
-          operations.with(\.$pds).with(\.$did) { did in
-            did.with(\.$operations) { operations in operations.with(\.$handle) }
+        {
+          $0.with(\.$pds).with(\.$did) {
+            $0.with(\.$operations) { $0.with(\.$handle).with(\.$pds) }
           }
         }
       ).first()
@@ -136,7 +136,7 @@ struct HandleController: RouteCollection {
     let operations = try mergeSort(handle.operations).compactMap {
       operation -> HandleShowContext.UpdateHandleOp? in
       guard let didOps = try treeSort(operation.did.operations).first else {
-        throw "Broken operation tree"
+        throw Abort(.internalServerError, reason: "Broken operation tree")
       }
       let updateHandleOps = try onlyUpdateHandle(op: didOps)
       guard let since = updateHandleOps.firstIndex(where: { $0.id == operation.id }) else {
@@ -149,7 +149,13 @@ struct HandleController: RouteCollection {
         pds = operation.pds!
       } else {
         until = nil
-        pds = didOps.last!.pds!
+        guard let lastOp = didOps.last else {
+          throw Abort(.internalServerError, reason: "Not expected empty did plc")
+        }
+        guard let lastPds = lastOp.pds else {
+          throw Abort(.internalServerError, reason: "Not expected empty latest server")
+        }
+        pds = lastPds
       }
       return .init(
         did: try operation.did.requireID(), pds: pds.endpoint, createdAt: operation.createdAt,
