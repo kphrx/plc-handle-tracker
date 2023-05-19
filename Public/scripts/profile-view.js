@@ -91,15 +91,23 @@ export class ProfileModal extends HTMLElement {
   position: fixed;
   z-index: 10000;
   inset: 0;
-  background: rgb(32 32 32 / .7);
+  background: rgb(222 222 222 / .8);
 }
 :host > div {
   margin: 10vh 10vw;
   padding: 1rem;
-  background: #222;
   display: grid;
   grid-template-columns: 6rem calc(80vw - 9rem);
   gap: 1rem;
+  background: #fff;
+}
+@media (prefers-color-scheme: dark) {
+  :host([open]) {
+    background: rgb(32 32 32 / .8);
+  }
+  :host > div {
+    background: #333;
+  }
 }
 slot[name=banner]::slotted(img) {
   width: 100%;
