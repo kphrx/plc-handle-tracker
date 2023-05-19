@@ -110,15 +110,19 @@ export class ProfileModal extends HTMLElement {
   }
 }
 slot[name=banner]::slotted(img) {
-  width: 100%;
   grid-column: span 2;
+  width: 100%;
+  max-height: 24rem;
+  object-fit: cover;
 }
 slot[name=avatar]::slotted(img) {
-  width: 100%;
-  grid-column-start: 1;
+  grid-column: 1;
+  max-width: 6rem;
+  max-height: 6rem;
+  object-fit: scale-down;
 }
 dl {
-  grid-column-start: 2;
+  grid-column: 2;
   display: grid;
   grid-template-columns: 4rem 1fr;
   gap: .5rem 1rem;
