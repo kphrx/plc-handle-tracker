@@ -142,13 +142,18 @@ struct HandleController: RouteCollection {
       guard let since = updateHandleOps.firstIndex(where: { $0.id == operation.id }) else {
         return nil
       }
-      var until: Operation? = nil
+      let until: Operation?
+      let pds: PersonalDataServer
       if since < updateHandleOps.indices.last! {
         until = updateHandleOps[since + 1]
+        pds = operation.pds!
+      } else {
+        until = nil
+        pds = didOps.last!.pds!
       }
       return .init(
-        did: try operation.did.requireID(), pds: operation.pds!.endpoint,
-        createdAt: operation.createdAt, updatedAt: until?.createdAt)
+        did: try operation.did.requireID(), pds: pds.endpoint, createdAt: operation.createdAt,
+        updatedAt: until?.createdAt)
     }
     return try await req.view.render(
       "handle/show",

@@ -48,6 +48,19 @@ struct DidShowContext: BaseContext {
     let handle: String?
     let pds: String?
     let createdAt: Date
+
+    init?(op operation: Operation?) {
+      guard let operation else {
+        return nil
+      }
+      self.init(op: operation)
+    }
+
+    init(op operation: Operation) {
+      self.handle = operation.handle?.handle
+      self.pds = operation.pds?.endpoint
+      self.createdAt = operation.createdAt
+    }
   }
 
   struct Current: Content {
@@ -137,15 +150,12 @@ struct DidController: RouteCollection {
       throw "Broken operation tree"
     }
     let updateHandleOps = try onlyUpdateHandle(op: operations).map {
-      operation -> DidShowContext.UpdateHandleOp in
-      return .init(
-        handle: operation.handle?.handle, pds: operation.pds?.endpoint,
-        createdAt: operation.createdAt)
+      DidShowContext.UpdateHandleOp(op: $0)
     }
     return try await req.view.render(
       "did/show",
       DidShowContext(
         title: try didPlc.requireID(), route: req.route?.description ?? "",
-        current: .init(op: updateHandleOps.last), operations: updateHandleOps))
+        current: .init(op: .init(op: operations.last)), operations: updateHandleOps))
   }
 }
