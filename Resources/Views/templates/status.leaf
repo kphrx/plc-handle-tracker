@@ -60,6 +60,7 @@ tbody th {
 tbody td {
   min-width: 200px;
   text-align: center;
+  line-height: 1.2rem;
 }
 </style>
   #endexport
@@ -74,7 +75,12 @@ tbody td {
     <h2>#import("history_heading")</h2>
     <table name=history-table>
       <caption>History table</caption>
-      #import("history_table_body")
+      <thead>
+        #import("history_table_head")
+      </thead>
+      <tbody>
+        #import("history_table_body")
+      </tbody>
     </table>
   </secton>
   #endexport

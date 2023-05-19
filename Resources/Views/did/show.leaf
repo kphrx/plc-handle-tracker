@@ -13,24 +13,23 @@
 
   #export("history_heading"): Handle History #endexport
 
+  #export("history_table_head"):
+    <tr>
+      <th>Handle</th>
+      <th>Used since</th>
+    </tr>
+  #endexport
+
   #export("history_table_body"):
-    <thead>
-      <tr>
-        <th>Handle</th>
-        <th>Used since</th>
-      </tr>
-    </thead>
-    <tbody>
-      #for(operation in operations):
-      <tr>
-        <th class=handle>
-          #if(operation.handle): <a href=/handle/#(operation.handle)>@#(operation.handle)</a>
-          #else: tombstone
-          #endif
-        </dt>
-        <td>#date(operation.createdAt, "yyyy-MM-dd HH:mm:ss z")</td>
-      </tr>
-      #endfor
-    </tbody>
+    #for(operation in operations):
+    <tr>
+      <th class=handle>
+        #if(operation.handle): <a href=/handle/#(operation.handle)>@#(operation.handle)</a>
+        #else: tombstone
+        #endif
+      </dt>
+      <td>#date(operation.createdAt, "yyyy-MM-dd HH:mm:ss z")</td>
+    </tr>
+    #endfor
   #endexport
 #endextend

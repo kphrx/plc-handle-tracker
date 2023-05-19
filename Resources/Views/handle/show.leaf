@@ -1,41 +1,155 @@
 #extend("templates/status"):
   #export("current_info"):
-    #if(count(current) == 0):
-    <p>Currently, not used</p>
-    #else:
-    <dl>
-      <dt>Server</dt>
-      #for(op in current):
-      <dd>#externalLink(op.pds)</dd>
-      #endfor
-      <dt>DID</dt>
-      #for(op in current):
-      <dd class=did-plc><a href=/did/#(op.did)>#(op.did)</a></dd>
-      #endfor
-    </dl>
+    #if(count(current) != 0):
+      <table name=server-did-table>
+        <thead>
+          <tr>
+            <th>Personal Data Server</th>
+            <th>DID</th>
+          </tr>
+        </thead>
+        <tbody>
+          #for(op in current):
+          <tr>
+            <td>#externalLink(op.pds)</td>
+            <td class=did-plc><a href=/did/#(op.did)>#(op.did)</a></dd>
+          </tr>
+          #endfor
+        </tbody>
+      </table>
+      <template id=account-status>
+        <style>
+:host {
+  display: block;
+  max-height: 1.2rem;
+}
+button {
+  display: none;
+}
+:host([has-profile]) button {
+  display: inline-block;
+  margin-top: -1px;
+}
+slot[name=indicator] {
+  display: inline-block;
+  vertical-align: bottom;
+}
+        </style>
+        <button>View Profile</button>
+        <slot name=indicator></slot>
+      </template>
+      <script type="module">
+        import { ProfileModal, getRecord, describeRepo } from '/scripts/profile-view.js';
+
+        const profileModal = document.body.appendChild(new ProfileModal());
+
+        window.customElements.define('profile-status', class extends HTMLElement {
+          constructor() {
+            super();
+
+            const template = document.querySelector('template#account-status');
+            const shadowRoot = this.attachShadow({mode: 'open', slotAssignment: 'manual'});
+            shadowRoot.appendChild(template.content.cloneNode(true));
+
+            this.statusNone = document.createTextNode('-');
+            this.statusOk = document.createTextNode('🟢');
+            this.statusErr = document.createTextNode('🔴');
+
+            this.indicator = shadowRoot.querySelector('slot[name=indicator]');
+          }
+
+          connectedCallback() {
+            this.append(this.statusNone, this.statusOk, this.statusErr);
+          }
+
+          async setInfo(did, base) {
+            this.did = did;
+            this.base = base;
+            this.hasProfile = false;
+            this.handleIsCorrect = false;
+
+            this.indicator.assign(this.statusNone);
+
+            const profileView = this.shadowRoot.querySelector('button');
+            profileView.addEventListener('click', e => this.onClick(e));
+
+            try {
+              const {
+                did,
+                baseUrl,
+                hasProfile,
+                handleIsCorrect,
+              } = await describeRepo(this.did, this.base);
+              this.did = did;
+              this.base = baseUrl;
+              this.hasProfile = hasProfile;
+              this.handleIsCorrect = handleIsCorrect;
+            } catch(error) {
+              this.deleted = true;
+            } finally {
+              this.indicator.assign(this.handleIsCorrect ? this.statusOk : this.statusErr);
+              if (this.hasProfile) this.setAttribute('has-profile', '');
+            }
+          }
+
+          async onClick(event) {
+            if (!this.hasProfile) {
+              event.preventDefault();
+              return
+            }
+
+            const res = await getRecord(this.did, this.base).catch(err => {
+              this.indicator.assign(this.statusErr);
+              return null
+            });
+
+            if (res == null) return
+
+            this.indicator.assign(this.statusOk);
+
+            profileModal.open(res);
+          }
+        });
+
+        const table = document.querySelector('table[name=server-did-table]');
+        const header = table.tHead.rows[0].appendChild(document.createElement('th'));
+        header.textContent = 'Account Status';
+
+        for (const row of table.tBodies[0].rows) {
+          const newCell = row.insertCell();
+          const status = document.createElement('profile-status');
+          const pds = row.cells[0].querySelector('a');
+          const did = row.cells[1].querySelector('a')?.textContent;
+
+          await status.setInfo(did, pds?.href);
+          newCell.appendChild(status);
+        }
+      </script>
+    #else: <p>Currently, not used</p>
     #endif
   #endexport
+
   #export("history_heading"): DID History #endexport
+
+  #export("history_table_head"):
+    <tr>
+      <th>DID</th>
+      <th>Used since</th>
+      <th>Used until</th>
+    </tr>
+  #endexport
+
   #export("history_table_body"):
-    <thead>
-      <tr>
-        <th>DID</th>
-        <th>Used since</th>
-        <th>Used until</th>
-      </tr>
-    </thead>
-    <tbody>
-      #for(operation in operations):
-      <tr>
-        <th class=did-plc><a href=/did/#(operation.did)>#(operation.did)</a></dt>
-        <td>#date(operation.createdAt, "yyyy-MM-dd HH:mm:ss z")</td>
-        <td>
-          #if(operation.updatedAt): #date(operation.updatedAt, "yyyy-MM-dd HH:mm:ss z")
-          #else: -
-          #endif
-        </td>
-      </tr>
-      #endfor
-    </tbody>
+    #for(operation in operations):
+    <tr>
+      <th class=did-plc><a href=/did/#(operation.did)>#(operation.did)</a></dt>
+      <td>#date(operation.createdAt, "yyyy-MM-dd HH:mm:ss z")</td>
+      <td>
+        #if(operation.updatedAt): #date(operation.updatedAt, "yyyy-MM-dd HH:mm:ss z")
+        #else: -
+        #endif
+      </td>
+    </tr>
+    #endfor
   #endexport
 #endextend
