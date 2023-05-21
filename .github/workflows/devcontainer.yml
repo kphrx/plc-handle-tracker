@@ -48,7 +48,7 @@ jobs:
 
       - name: Build builder Docker image
         id: builder
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           context: "{{defaultContext}}:.devcontainer"
           platforms: ${{ env.IMAGE_ARCH }}
