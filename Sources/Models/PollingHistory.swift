@@ -12,7 +12,7 @@ final class PollingHistory: Model, Content {
 
   static func getLatestCompleted(on database: Database) async throws -> PollingHistory? {
     let errorOrRunnings = try await PollingJobStatus.query(on: database).filter(
-      \.$status != .success
+      \.$status !~ [.success, .banned]
     ).all(\.$history.$id)
     return try await PollingHistory.query(on: database).filter(\.$failed == false).filter(
       \.$cid != .null
