@@ -36,6 +36,9 @@ services:
     build:
       context: .
     restart: always
+    healthcheck:
+      test: ["CMD", "bash", "-c", "':> /dev/tcp/127.0.0.1/8080'", "||", "exit", "1"]
+      timeout: 15s
     environment:
       <<: *shared_environment
     depends_on:
