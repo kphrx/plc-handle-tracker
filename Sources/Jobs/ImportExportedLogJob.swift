@@ -14,8 +14,29 @@ struct ImportExportedLogJob: AsyncJob {
     if payload.ops.isEmpty {
       throw "Empty export"
     }
-    try await app.db.transaction { transaction in
-      try await self.insert(ops: payload.ops, on: transaction)
+    do {
+      try await app.db.transaction { transaction in
+        try await self.insert(ops: payload.ops, on: transaction)
+      }
+    } catch let error as OpParseError {
+      let exportedOp = payload.ops.first!
+      var reason = BanReason.incompatibleAtproto
+      switch error {
+      case .invalidHandle:
+        reason = .invalidHandle
+      case .unknownPreviousOp:
+        reason = .missingHistory
+      default:
+        break
+      }
+      if let did = try? await Did.find(exportedOp.did, on: app.db) {
+        did.banned = true
+        did.reason = reason
+        try? await did.update(on: app.db)
+      } else {
+        try? await Did(exportedOp.did, banned: true, reason: reason).create(on: app.db)
+      }
+      throw error
     }
   }
 
@@ -26,29 +47,9 @@ struct ImportExportedLogJob: AsyncJob {
         prevOp = operation
         continue
       }
-      do {
-        let operation = try await exportedOp.normalize(prev: prevOp, on: database)
-        try await operation.create(on: database)
-        prevOp = operation
-      } catch let error as OpParseError {
-        var reason = BanReason.incompatibleAtproto
-        switch error {
-        case .invalidHandle:
-          reason = .invalidHandle
-        case .unknownPreviousOp:
-          reason = .missingHistory
-        default:
-          break
-        }
-        if let did = try? await Did.find(exportedOp.did, on: database) {
-          did.banned = true
-          did.reason = reason
-          try? await did.update(on: database)
-          throw error
-        }
-        try? await Did(exportedOp.did, banned: true, reason: reason).create(on: database)
-        throw error
-      }
+      let operation = try await exportedOp.normalize(prev: prevOp, on: database)
+      try await operation.create(on: database)
+      prevOp = operation
     }
   }
 

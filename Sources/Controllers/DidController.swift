@@ -146,6 +146,9 @@ struct DidController: RouteCollection {
       }
       throw Abort(.notFound)
     }
+    if didPlc.banned {
+      throw Abort(.notFound, reason: didPlc.reason?.rawValue)
+    }
     if didPlc.operations.isEmpty {
       throw Abort(.notFound, reason: "Operation not stored")
     }

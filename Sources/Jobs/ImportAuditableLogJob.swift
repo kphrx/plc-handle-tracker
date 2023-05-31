@@ -13,8 +13,32 @@ struct ImportAuditableLogJob: AsyncJob {
     let app = context.application
     let response = try await app.client.get("https://plc.directory/\(payload)/log/audit")
     let ops = try response.content.decode([ExportedOperation].self)
-    try await app.db.transaction { transaction in
-      try await self.insert(ops: ops, on: transaction)
+    do {
+      try await app.db.transaction { transaction in
+        try await self.insert(ops: ops, on: transaction)
+      }
+    } catch let error as OpParseError {
+      let exportedOp = ops.first!
+      var reason = BanReason.incompatibleAtproto
+      switch error {
+      case .invalidHandle:
+        reason = .invalidHandle
+      case .unknownPreviousOp:
+        reason = .missingHistory
+      default:
+        break
+      }
+      if let did = try? await Did.find(exportedOp.did, on: app.db) {
+        did.banned = true
+        did.reason = reason
+        try? await did.update(on: app.db)
+      } else {
+        try? await Did(exportedOp.did, banned: true, reason: reason).create(on: app.db)
+      }
+      try? await PollingJobStatus.query(on: app.db).set(\.$status, to: .banned).filter(
+        \.$did == payload
+      ).filter(\.$status !~ [.success, .banned]).update()
+      throw error
     }
     if let did = try? await Did.find(payload, on: app.db) {
       did.banned = false
