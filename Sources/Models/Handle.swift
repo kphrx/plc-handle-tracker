@@ -26,7 +26,7 @@ final class Handle: Model, Content {
 
   init(id: UUID? = nil, handle: String) throws {
     self.id = id
-    guard handle.rangeOfCharacter(from: Handle.validDomainNameCharacters) != nil else {
+    if handle.rangeOfCharacter(from: Handle.validDomainNameCharacters) != nil {
       throw HandleNameError.invalidCharacter
     }
     self.handle = handle
