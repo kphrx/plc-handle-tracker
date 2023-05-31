@@ -5,7 +5,7 @@ extension Operation: TreeSort {
   func cursor() throws -> KeyType {
     try self.requireID()
   }
-  func previous_cursor() -> KeyType? {
+  func previousCursor() -> KeyType? {
     self.$prev.id
   }
 }
@@ -15,7 +15,7 @@ extension ExportedOperation: TreeSort {
   func cursor() -> KeyType {
     self.cid
   }
-  func previous_cursor() -> KeyType? {
+  func previousCursor() -> KeyType? {
     switch self.operation {
     case .create: return nil
     case .plcOperation(let plcOp): return plcOp.prev
@@ -27,7 +27,7 @@ extension ExportedOperation: TreeSort {
 protocol TreeSort {
   associatedtype KeyType: CustomStringConvertible, Hashable
   func cursor() throws -> KeyType
-  func previous_cursor() -> KeyType?
+  func previousCursor() -> KeyType?
 }
 
 func treeSort<T: TreeSort>(_ array: [T]) throws -> [[T]] {
@@ -36,7 +36,7 @@ func treeSort<T: TreeSort>(_ array: [T]) throws -> [[T]] {
   var heads: [T] = []
   for item in array {
     ids.append(try item.cursor())
-    guard let prev = item.previous_cursor() else {
+    guard let prev = item.previousCursor() else {
       heads.append(item)
       continue
     }

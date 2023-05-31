@@ -31,7 +31,8 @@ struct ImportExportedLogJob: AsyncJob {
         try await operation.create(on: database)
         prevOp = operation
       } catch let error as OpParseError {
-        let bannedDid = try await BannedDid.find(exportedOp.did, on: database) ?? BannedDid(did: exportedOp.did)
+        let bannedDid =
+          try await BannedDid.find(exportedOp.did, on: database) ?? BannedDid(did: exportedOp.did)
         switch error {
         case .invalidHandle:
           bannedDid.reason = .invalidHandle

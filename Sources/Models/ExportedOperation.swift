@@ -62,7 +62,7 @@ struct PlcOperation: Encodable {
 }
 struct Services: Content {
   struct Service: Content {
-    let type: String /* AtprotoPersonalDataServer */
+    let type: String  // AtprotoPersonalDataServer
     let endpoint: String
   }
   let atprotoPds: Service
