@@ -12,7 +12,7 @@ struct MergeBannedDidsTableToDidsTable: AsyncMigration {
       guard let sql = transaction as? SQLDatabase else {
         throw "not supported currently database"
       }
-      for bannedDidRow in try await sql.select().from("banned_dids").all() {
+      for bannedDidRow in try await sql.select().columns("*").from("banned_dids").all() {
         let did = try bannedDidRow.decode(column: "did", as: String.self)
         let reason = try bannedDidRow.decode(column: "reason", as: BanReason.self)
         if let did = try await Did.find(did, on: transaction) {
@@ -39,9 +39,15 @@ struct MergeBannedDidsTableToDidsTable: AsyncMigration {
         }
         try await sql.update("banned_dids")
           .set("did", to: SQLLiteral.string(try bannedDids.requireID()))
-          .set("reason", to: SQLLiteral.string((bannedDids.reason ?? .incompatibleAtproto).rawValue))
+          .set(
+            "reason", to: SQLLiteral.string((bannedDids.reason ?? .incompatibleAtproto).rawValue)
+          )
           .run()
       }
+      try await transaction.schema("dids")
+        .deleteField("banned")
+        .deleteField("reason")
+        .update()
     }
   }
 }
