@@ -4,7 +4,7 @@ import FluentSQL
 struct AddCompletedColumnToPollingHistoryTable: AsyncMigration {
   func prepare(on database: Database) async throws {
     try await database.schema("polling_history")
-      .field("completed", .bool)
+      .field("completed", .bool, .required, .custom("DEFAULT false"))
       .update()
     try await database.transaction { transaction in
       if let sql = transaction as? SQLDatabase {
@@ -12,11 +12,6 @@ struct AddCompletedColumnToPollingHistoryTable: AsyncMigration {
           .set("completed", to: true)
           .where("operation", .isNot, SQLLiteral.null)
           .run()
-        try await sql.update("polling_history")
-          .set("completed", to: false)
-          .where("operation", .is, SQLLiteral.null)
-          .run()
-        try await sql.raw("ALTER TABLE polling_history ALTER COLUMN completed SET NOT NULL").run()
       } else {
         throw "not supported currently database"
       }
