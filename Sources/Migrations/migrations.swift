@@ -15,4 +15,5 @@ func migrations(_ app: Application) {
   app.migrations.add(AddDidColumnToPollingJobStatusesTable())
   app.migrations.add(CreateBannedDidsTable())
   app.migrations.add(AddReasonColumnToBannedDidsTable())
+  app.migrations.add(MergeBannedDidsTableToDidsTable())
 }

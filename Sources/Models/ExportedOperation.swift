@@ -227,7 +227,7 @@ struct ExportedOperation: Content {
       return
     }
     do {
-      try await Did(did: string).create(on: database)
+      try await Did(string).create(on: database)
     } catch let error as PostgresError where error.code == .uniqueViolation {
       return
     }

@@ -31,18 +31,23 @@ struct ImportExportedLogJob: AsyncJob {
         try await operation.create(on: database)
         prevOp = operation
       } catch let error as OpParseError {
-        let bannedDid =
-          try await BannedDid.find(exportedOp.did, on: database) ?? BannedDid(did: exportedOp.did)
+        var reason = BanReason.incompatibleAtproto
         switch error {
         case .invalidHandle:
-          bannedDid.reason = .invalidHandle
+          reason = .invalidHandle
         case .unknownPreviousOp:
-          bannedDid.reason = .missingHistory
+          reason = .missingHistory
         default:
           break
         }
-        try? await bannedDid.create(on: database)
-        return
+        if let did = try? await Did.find(exportedOp.did, on: database) {
+          did.banned = true
+          did.reason = reason
+          try? await did.update(on: database)
+          throw error
+        }
+        try? await Did(exportedOp.did, banned: true, reason: reason).create(on: database)
+        throw error
       }
     }
   }
