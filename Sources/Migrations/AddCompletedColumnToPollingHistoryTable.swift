@@ -9,7 +9,7 @@ struct AddCompletedColumnToPollingHistoryTable: AsyncMigration {
     try await database.transaction { transaction in
       if let sql = transaction as? SQLDatabase {
         try await sql.update("polling_history")
-          .set("completed", to: true)
+          .set("completed", to: SQLLiteral.boolean(true))
           .where("operation", .isNot, SQLLiteral.null)
           .run()
       } else {

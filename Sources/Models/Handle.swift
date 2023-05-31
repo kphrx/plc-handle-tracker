@@ -11,6 +11,7 @@ final class Handle: Model, Content {
   static let validDomainNameCharacters = CharacterSet(charactersIn: "a"..."z")
     .union(.init(charactersIn: "0"..."9"))
     .union(.init(charactersIn: ".-"))
+    .inverted
 
   @ID(key: .id)
   var id: UUID?
