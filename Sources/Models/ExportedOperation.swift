@@ -5,6 +5,9 @@ import Vapor
 
 enum OpParseError: Error {
   case notUsedInAtproto(String)
+  case notFoundAtprotoHandle
+  case invalidHandle
+  case unknownPreviousOp
 }
 
 enum CompatibleOperationOrTombstone: Encodable {
@@ -187,7 +190,7 @@ struct ExportedOperation: Content {
         let handleString = plcOp.alsoKnownAs.first(where: { $0.hasPrefix("at://") })?
           .replacingOccurrences(of: "at://", with: "")
       else {
-        throw "Not found handle"
+        throw OpParseError.notFoundAtprotoHandle
       }
       async let handle = self.resolve(handle: handleString, on: database)
       async let pds = self.resolve(
@@ -227,25 +230,22 @@ struct ExportedOperation: Content {
       try await Did(did: string).create(on: database)
     } catch let error as PostgresError where error.code == .uniqueViolation {
       return
-    } catch {
-      throw error
     }
   }
 
   private func resolve(handle string: String, on database: Database) async throws -> Handle {
-    guard let handle = try await Handle.query(on: database).filter(\.$handle == string).first()
-    else {
-      let handle = Handle(handle: string)
-      do {
-        try await handle.create(on: database)
-      } catch let error as PostgresError where error.code == .uniqueViolation {
-        return try await self.resolve(handle: string, on: database)
-      } catch {
-        throw error
-      }
+    if let handle = try await Handle.query(on: database).filter(\.$handle == string).first() {
       return handle
     }
-    return handle
+    do {
+      let handle = try Handle(handle: string)
+      try await handle.create(on: database)
+      return handle
+    } catch HandleNameError.invalidCharacter {
+      throw OpParseError.invalidHandle
+    } catch let error as PostgresError where error.code == .uniqueViolation {
+      return try await self.resolve(handle: string, on: database)
+    }
   }
 
   private func resolve(serviceEndpoint string: String, on database: Database) async throws
@@ -260,8 +260,6 @@ struct ExportedOperation: Content {
         try await service.create(on: database)
       } catch let error as PostgresError where error.code == .uniqueViolation {
         return try await self.resolve(serviceEndpoint: string, on: database)
-      } catch {
-        throw error
       }
       return service
     }
@@ -270,7 +268,7 @@ struct ExportedOperation: Content {
 
   private func resolve(prev cid: String, on database: Database) async throws -> Operation {
     guard let operation = try await Operation.find(cid, on: database) else {
-      throw "Unknown operation"
+      throw OpParseError.unknownPreviousOp
     }
     return operation
   }

@@ -26,9 +26,23 @@ struct ImportExportedLogJob: AsyncJob {
         prevOp = operation
         continue
       }
-      let operation = try await exportedOp.normalize(prev: prevOp, on: database)
-      try await operation.create(on: database)
-      prevOp = operation
+      do {
+        let operation = try await exportedOp.normalize(prev: prevOp, on: database)
+        try await operation.create(on: database)
+        prevOp = operation
+      } catch let error as OpParseError {
+        let bannedDid = try await BannedDid.find(exportedOp.did, on: database) ?? BannedDid(did: exportedOp.did)
+        switch error {
+        case .invalidHandle:
+          bannedDid.reason = .invalidHandle
+        case .unknownPreviousOp:
+          bannedDid.reason = .missingHistory
+        default:
+          break
+        }
+        try? await bannedDid.create(on: database)
+        return
+      }
     }
   }
 
