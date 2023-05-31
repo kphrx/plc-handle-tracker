@@ -8,9 +8,13 @@ struct AddCompletedColumnToPollingHistoryTable: AsyncMigration {
       .update()
     try await database.transaction { transaction in
       if let sql = transaction as? SQLDatabase {
-        try await sql.raw("UPDATE polling_history SET completed = true WHERE operation IS NOT NULL")
+        try await sql.update("polling_history")
+          .set("completed", to: true)
+          .where("operation", .isNot, SQLLiteral.null)
           .run()
-        try await sql.raw("UPDATE polling_history SET completed = false WHERE operation IS NULL")
+        try await sql.update("polling_history")
+          .set("completed", to: false)
+          .where("operation", .is, SQLLiteral.null)
           .run()
         try await sql.raw("ALTER TABLE polling_history ALTER COLUMN completed SET NOT NULL").run()
       } else {

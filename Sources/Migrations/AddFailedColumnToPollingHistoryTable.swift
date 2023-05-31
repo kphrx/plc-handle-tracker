@@ -7,7 +7,9 @@ struct AddFailedColumnToPollingHistoryTable: AsyncMigration {
       .field("failed", .bool)
       .update()
     if let sql = database as? SQLDatabase {
-      try await sql.raw("UPDATE polling_history SET failed = false").run()
+      try await sql.update("polling_history")
+        .set("failed", to: false)
+        .run()
       try await sql.raw("ALTER TABLE polling_history ALTER COLUMN failed SET NOT NULL").run()
     } else {
       throw "not supported currently database"
