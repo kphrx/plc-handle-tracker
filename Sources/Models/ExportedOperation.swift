@@ -198,13 +198,11 @@ struct ExportedOperation: Content {
       let prev: Operation?
       if let prevOp {
         prev = prevOp
+      } else if let cid = plcOp.prev {
+        prev = try await self.resolve(prev: .init(cid: cid, did: self.did), on: database)
       } else {
-        switch plcOp.prev {
-        case .some(let cid): prev = try await self.resolve(prev: cid, on: database)
-        case .none:
-          try await self.create(did: self.did, on: database)
-          prev = nil
-        }
+        try await self.create(did: self.did, on: database)
+        prev = nil
       }
       return try Operation(
         cid: self.cid, did: self.did, nullified: self.nullified, createdAt: self.createdAt,
@@ -214,7 +212,8 @@ struct ExportedOperation: Content {
       if let prevOp {
         prev = prevOp
       } else {
-        prev = try await self.resolve(prev: tombstoneOp.prev, on: database)
+        prev = try await self.resolve(
+          prev: .init(cid: tombstoneOp.prev, did: self.did), on: database)
       }
       return try Operation(
         cid: self.cid, did: self.did, nullified: self.nullified,
@@ -266,8 +265,10 @@ struct ExportedOperation: Content {
     return service
   }
 
-  private func resolve(prev cid: String, on database: Database) async throws -> Operation {
-    guard let operation = try await Operation.find(cid, on: database) else {
+  private func resolve(prev prevId: Operation.IDValue, on database: Database) async throws
+    -> Operation
+  {
+    guard let operation = try await Operation.find(prevId, on: database) else {
       throw OpParseError.unknownPreviousOp
     }
     return operation

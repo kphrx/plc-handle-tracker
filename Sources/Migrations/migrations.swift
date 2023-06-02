@@ -16,4 +16,5 @@ func migrations(_ app: Application) {
   app.migrations.add(CreateBannedDidsTable())
   app.migrations.add(AddReasonColumnToBannedDidsTable())
   app.migrations.add(MergeBannedDidsTableToDidsTable())
+  app.migrations.add(ChangePrimaryKeyToCompositeDidAndCid())
 }

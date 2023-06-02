@@ -4,11 +4,34 @@ import Vapor
 final class Operation: Model, Content {
   static let schema = "operations"
 
-  @ID(custom: "cid", generatedBy: .user)
-  var id: String?
+  final class IDValue: Fields, Hashable {
+    @Field(key: "cid")
+    var cid: String
 
-  @Parent(key: "did")
-  var did: Did
+    @Parent(key: "did")
+    var did: Did
+
+    init() {}
+
+    init(cid: String, did: Did.IDValue) {
+      self.cid = cid
+      self.$did.id = did
+    }
+
+    static func == (lhs: IDValue, rhs: IDValue) -> Bool {
+      return lhs.cid == rhs.cid && lhs.$did.id == rhs.$did.id
+    }
+
+    func hash(into hasher: inout Hasher) {
+      hasher.combine(self.cid)
+      hasher.combine(self.$did.id)
+    }
+  }
+  @CompositeID var id: IDValue?
+
+  var did: Did {
+    return self.id!.did
+  }
 
   @Field(key: "nullified")
   var nullified: Bool
@@ -16,10 +39,20 @@ final class Operation: Model, Content {
   @Timestamp(key: "created_at", on: .none)
   var createdAt: Date!
 
-  @OptionalParent(key: "prev")
+  @CompositeOptionalParent(
+    prefix: "",
+    strategy: .custom({ prefix, key in
+      if key.description == "cid" {
+        return "prev"
+      }
+      if key.description == "did" {
+        return key
+      }
+      return .prefix(.prefix(prefix, .string("_")), key)
+    }))
   var prev: Operation?
 
-  @Children(for: \.$prev)
+  @CompositeChildren(for: \.$prev)
   var nexts: [Operation]
 
   @OptionalParent(key: "handle")
@@ -34,8 +67,7 @@ final class Operation: Model, Content {
     cid: String, did: String, nullified: Bool, createdAt: Date,
     prev: Operation? = nil, handle: Handle? = nil, pds: PersonalDataServer? = nil
   ) throws {
-    self.id = cid
-    self.$did.id = did
+    self.id = .init(cid: cid, did: did)
     self.nullified = nullified
     self.createdAt = createdAt
     self.$prev.id = try prev?.requireID()

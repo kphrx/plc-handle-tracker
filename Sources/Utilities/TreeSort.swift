@@ -25,7 +25,7 @@ extension ExportedOperation: TreeSort {
 }
 
 protocol TreeSort {
-  associatedtype KeyType: CustomStringConvertible, Hashable
+  associatedtype KeyType: Hashable
   func cursor() throws -> KeyType
   func previousCursor() -> KeyType?
 }

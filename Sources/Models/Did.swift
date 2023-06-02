@@ -19,7 +19,7 @@ final class Did: Model, Content {
   @OptionalEnum(key: "reason")
   var reason: BanReason?
 
-  @Children(for: \.$did)
+  @Children(for: \.$id.$did)
   var operations: [Operation]
 
   init() {}

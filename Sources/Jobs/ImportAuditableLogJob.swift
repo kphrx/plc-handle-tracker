@@ -53,7 +53,9 @@ struct ImportAuditableLogJob: AsyncJob {
   private func insert(ops operations: [ExportedOperation], on database: Database) async throws {
     var prevOp: Operation?
     for exportedOp in operations {
-      if let operation = try await Operation.find(exportedOp.cid, on: database) {
+      if let operation = try await Operation.find(
+        .init(cid: exportedOp.cid, did: exportedOp.did), on: database)
+      {
         prevOp = operation
         continue
       }

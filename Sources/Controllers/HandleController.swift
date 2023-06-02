@@ -125,7 +125,7 @@ struct HandleController: RouteCollection {
       let handle = try await Handle.query(on: req.db).filter(\.$handle == handleName).with(
         \.$operations,
         {
-          $0.with(\.$pds).with(\.$did) {
+          $0.with(\.$pds).with(\.$id.$did) {
             $0.with(\.$operations) { $0.with(\.$handle).with(\.$pds) }
           }
         }
