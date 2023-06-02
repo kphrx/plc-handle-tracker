@@ -60,7 +60,9 @@ final class Operation: Model, Content {
     self.id = .init(cid: cid, did: did)
     self.nullified = nullified
     self.createdAt = createdAt
-    self.$prev.id = try prev?.requireID()
+    if let prevId = try prev?.requireID() {
+      self.$prev.id = .init(cid: prevId.cid, did: prevId.$did.id)
+    }
     self.$handle.id = try handle?.requireID()
     self.$pds.id = try pds?.requireID()
   }
