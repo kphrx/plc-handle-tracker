@@ -48,7 +48,8 @@ struct ChangePrimaryKeyToCompositeDidAndCid: AsyncMigration {
           )
           .returning("did")
           .all()
-        let deletedDids = Array(Set(try deletedOpRows.map { try $0.decode(column: "did", as: String.self) }))
+        let deletedDids = Array(
+          Set(try deletedOpRows.map { try $0.decode(column: "did", as: String.self) }))
         if !deletedDids.isEmpty {
           try await sql.delete(from: "operations").where("did", .in, deletedDids).run()
           try await Did.query(on: transaction).set(\.$banned, to: true).set(

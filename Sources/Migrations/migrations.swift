@@ -18,4 +18,5 @@ func migrations(_ app: Application) {
   app.migrations.add(MergeBannedDidsTableToDidsTable())
   app.migrations.add(ChangePrimaryKeyToCompositeDidAndCid())
   app.migrations.add(AddPrevDidColumnForPrevForeignKey())
+  app.migrations.add(CreateIndexForForeignKeyOfOperationsTable())
 }
