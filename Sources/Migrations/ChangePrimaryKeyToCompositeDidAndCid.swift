@@ -48,11 +48,13 @@ struct ChangePrimaryKeyToCompositeDidAndCid: AsyncMigration {
           )
           .returning("did")
           .all()
-        let deletedDids = try deletedOpRows.map { try $0.decode(column: "did", as: String.self) }
-        try await sql.delete(from: "operations").where("did", .in, deletedDids).run()
-        try await Did.query(on: transaction).set(\.$banned, to: true).set(
-          \.$reason, to: .missingHistory
-        ).filter(\.$id ~~ deletedDids).update()
+        let deletedDids = Array(Set(try deletedOpRows.map { try $0.decode(column: "did", as: String.self) }))
+        if !deletedDids.isEmpty {
+          try await sql.delete(from: "operations").where("did", .in, deletedDids).run()
+          try await Did.query(on: transaction).set(\.$banned, to: true).set(
+            \.$reason, to: .missingHistory
+          ).filter(\.$id ~~ deletedDids).update()
+        }
       } else {
         throw "not supported currently database"
       }
