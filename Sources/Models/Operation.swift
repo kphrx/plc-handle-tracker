@@ -39,17 +39,7 @@ final class Operation: Model, Content {
   @Timestamp(key: "created_at", on: .none)
   var createdAt: Date!
 
-  @CompositeOptionalParent(
-    prefix: "",
-    strategy: .custom({ prefix, key in
-      if key.description == "cid" {
-        return "prev"
-      }
-      if key.description == "did" {
-        return key
-      }
-      return .prefix(.prefix(prefix, .string("_")), key)
-    }))
+  @CompositeOptionalParent(prefix: "prev")
   var prev: Operation?
 
   @CompositeChildren(for: \.$prev)
