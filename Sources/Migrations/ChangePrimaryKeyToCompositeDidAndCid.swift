@@ -1,22 +1,6 @@
 import Fluent
 import FluentSQL
 
-struct SQLNotExistsExpression: SQLExpression {
-  public let expr: any SQLExpression
-
-  @inlinable
-  public init(_ expr: any SQLExpression) {
-    self.expr = expr
-  }
-
-  @inlinable
-  public func serialize(to serializer: inout SQLSerializer) {
-    serializer.statement {
-      $0.append("NOT EXISTS", self.expr)
-    }
-  }
-}
-
 struct ChangePrimaryKeyToCompositeDidAndCid: AsyncMigration {
   func prepare(on database: Database) async throws {
     try await database.transaction { transaction in
@@ -34,17 +18,12 @@ struct ChangePrimaryKeyToCompositeDidAndCid: AsyncMigration {
         let deletedOpRows = try await sql.delete(from: "operations")
           .where("prev", .isNot, SQLLiteral.null)
           .where(
-            SQLNotExistsExpression(
-              SQLGroupExpression(
-                sql.select().from("operations", as: "o")
-                  .where(
-                    SQLColumn("did", table: "operations"), .equal, SQLColumn("did", table: "o")
-                  )
-                  .where(
-                    SQLColumn("prev", table: "operations"), .equal, SQLColumn("cid", table: "o")
-                  )
-                  .query
-              ))
+            SQLFunction(
+              "NOT EXISTS",
+              args: sql.select().from("operations", as: "o")
+                .where(SQLColumn("did", table: "operations"), .equal, SQLColumn("did", table: "o"))
+                .where(SQLColumn("prev", table: "operations"), .equal, SQLColumn("cid", table: "o"))
+                .query)
           )
           .returning("did")
           .all()
