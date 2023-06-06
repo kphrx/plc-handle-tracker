@@ -1,4 +1,5 @@
 import Fluent
+import FluentPostgresDriver
 import Vapor
 
 struct HandleIndexQuery: Content {
@@ -110,11 +111,19 @@ struct HandleController: RouteCollection {
     if try await Handle.query(on: database).filter(\.$handle == handle).first() != nil {
       return .redirect(handle)
     }
-    if handle.count > 3 {
-      return .list(
-        handle, result: try await Handle.query(on: database).filter(\.$handle =~ handle).all())
+    if handle.count <= 3 {
+      return .notFound(handle)
     }
-    return .notFound(handle)
+    let result: [Handle]
+    if database is PostgresDatabase {
+      result = try await Handle.query(on: database).filter(\.$handle >= handle).filter(
+        \.$handle
+          <= .custom(SQLFunction("CONCAT", args: SQLLiteral.string(handle), SQLLiteral.string("~")))
+      ).all()
+    } else {
+      result = try await Handle.query(on: database).filter(\.$handle =~ handle).all()
+    }
+    return .list(handle, result: result)
   }
 
   func show(req: Request) async throws -> View {
