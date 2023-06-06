@@ -101,7 +101,7 @@ struct HandleController: RouteCollection {
       try await req.view.render(
         "handle/index",
         HandleIndexContext(
-          title: "DID Placeholders", route: req.route?.description ?? "", count: count,
+          title: "Handles", route: req.route?.description ?? "", count: count,
           currentValue: currentValue, message: result.message(), result: result.list())),
       status: result.status())
   }
