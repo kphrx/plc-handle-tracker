@@ -1,0 +1,13 @@
+{
+	"dockerComposeFile": ["../compose.yml", "compose.yml"],
+	"service": "development",
+	"features": {
+		"ghcr.io/devcontainers/features/docker-in-docker:2": {
+			"dockerDashComposeVersion": "v2"
+		}
+	},
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+	"shutdownAction": "stopCompose",
+	"forwardPorts": [8080],
+	"customizations": {}
+}
