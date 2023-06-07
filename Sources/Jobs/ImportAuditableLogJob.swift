@@ -44,15 +44,15 @@ struct ImportAuditableLogJob: AsyncJob {
   func error(_ context: QueueContext, _ error: Error, _ payload: Payload) async throws {
     let app = context.application
     if let err = error as? OpParseError {
-      var reason: BanReason
-      switch err {
-      case .invalidHandle:
-        reason = .invalidHandle
-      case .unknownPreviousOp:
-        reason = .missingHistory
-      default:
-        reason = .incompatibleAtproto
-      }
+      let reason: BanReason =
+        switch err {
+        case .invalidHandle:
+          .invalidHandle
+        case .unknownPreviousOp:
+          .missingHistory
+        default:
+          .incompatibleAtproto
+        }
       if let did = try? await Did.find(payload, on: app.db) {
         did.banned = true
         did.reason = reason

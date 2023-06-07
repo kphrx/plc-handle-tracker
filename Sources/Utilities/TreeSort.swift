@@ -17,9 +17,9 @@ extension ExportedOperation: TreeSort {
   }
   func previousCursor() -> KeyType? {
     switch self.operation {
-    case .create: return nil
-    case .plcOperation(let plcOp): return plcOp.prev
-    case .plcTombstone(let tombstoneOp): return tombstoneOp.prev
+    case .create: nil
+    case .plcOperation(let plcOp): plcOp.prev
+    case .plcTombstone(let tombstoneOp): tombstoneOp.prev
     }
   }
 }

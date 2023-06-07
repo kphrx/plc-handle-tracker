@@ -3,10 +3,12 @@ func validateDidPlaceholder(_ did: String) -> Bool {
     return false
   }
   let specificId = did.replacingOccurrences(of: "did:plc:", with: "")
-  if specificId.rangeOfCharacter(
-    from: .init(charactersIn: "abcdefghijklmnopqrstuvwxyz234567").inverted) != nil
+  return
+    if specificId.rangeOfCharacter(
+      from: .init(charactersIn: "abcdefghijklmnopqrstuvwxyz234567").inverted) != nil
   {
-    return false
+    false
+  } else {
+    specificId.count >= 24
   }
-  return specificId.count >= 24
 }
