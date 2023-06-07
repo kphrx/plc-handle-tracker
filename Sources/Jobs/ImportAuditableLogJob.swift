@@ -19,14 +19,13 @@ struct ImportAuditableLogJob: AsyncJob {
       }
     } catch let error as OpParseError {
       let exportedOp = ops.first!
-      var reason = BanReason.incompatibleAtproto
-      switch error {
+      let reason: BanReason = switch error {
       case .invalidHandle:
-        reason = .invalidHandle
+        .invalidHandle
       case .unknownPreviousOp:
-        reason = .missingHistory
+        .missingHistory
       default:
-        break
+        .incompatibleAtproto
       }
       if let did = try? await Did.find(exportedOp.did, on: app.db) {
         did.banned = true

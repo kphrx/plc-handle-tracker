@@ -16,10 +16,10 @@ extension ExportedOperation: TreeSort {
     self.cid
   }
   func previousCursor() -> KeyType? {
-    switch self.operation {
-    case .create: return nil
-    case .plcOperation(let plcOp): return plcOp.prev
-    case .plcTombstone(let tombstoneOp): return tombstoneOp.prev
+    return switch self.operation {
+    case .create: nil
+    case .plcOperation(let plcOp): plcOp.prev
+    case .plcTombstone(let tombstoneOp): tombstoneOp.prev
     }
   }
 }

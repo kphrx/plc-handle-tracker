@@ -13,10 +13,11 @@ struct NavLinkTag: UnsafeUnescapedLeafTag {
       throw NavLinkTagError.missingBodyParameter
     }
     let innerText = self.innerText(body)
-    if isCurrent {
-      return LeafData.string(innerText)
+    return if isCurrent {
+      LeafData.string(innerText)
+    } else {
+      LeafData.string("<a href=\(href)>\(innerText)</a>")
     }
-    return LeafData.string("<a href=\(href)>\(innerText)</a>")
   }
 
   private func parameters(_ parameters: [LeafData]) throws -> (String, Bool) {

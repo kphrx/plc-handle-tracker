@@ -13,27 +13,27 @@ enum HandleSearchResult {
   case none
 
   func list() -> [Handle] {
-    switch self {
-    case .list(_, let result): return result
-    default: return []
+    return switch self {
+    case .list(_, let result): result
+    default: []
     }
   }
 
   func message() -> String? {
-    switch self {
-    case .notFound(let handle): return "Not found: @\(handle)"
-    case .list(let handle, let result) where result.isEmpty: return "Not found: @\(handle)*"
-    case .list(let handle, result: _): return "Search: @\(handle)*"
-    default: return nil
+    return switch self {
+    case .notFound(let handle): "Not found: @\(handle)"
+    case .list(let handle, let result) where result.isEmpty: "Not found: @\(handle)*"
+    case .list(let handle, result: _): "Search: @\(handle)*"
+    default: nil
     }
   }
 
   func status() -> HTTPResponseStatus {
-    switch self {
-    case .notFound: return .notFound
-    case .redirect: return .movedPermanently
-    case .list(_, let result) where result.isEmpty: return .notFound
-    case .list, .none: return .ok
+    return switch self {
+    case .notFound: .notFound
+    case .redirect: .movedPermanently
+    case .list(_, let result) where result.isEmpty: .notFound
+    case .list, .none: .ok
     }
   }
 }
@@ -85,14 +85,10 @@ struct HandleController: RouteCollection {
 
   func index(req: Request) async throws -> ViewOrRedirect {
     let query = try req.query.decode(HandleIndexQuery.self)
-    let currentValue: String?
-    let result: HandleSearchResult
-    if let handle = query.name {
-      result = try await search(handle: handle, on: req.db)
-      currentValue = handle
+    let result: HandleSearchResult = if let handle = query.name {
+      try await search(handle: handle, on: req.db)
     } else {
-      result = .none
-      currentValue = nil
+      .none
     }
     if case .redirect(let handle) = result {
       return .redirect(to: "/handle/\(handle)")
@@ -103,7 +99,7 @@ struct HandleController: RouteCollection {
         "handle/index",
         HandleIndexContext(
           title: "Handles", route: req.route?.description ?? "", count: count,
-          currentValue: currentValue, message: result.message(), result: result.list())),
+          currentValue: query.name, message: result.message(), result: result.list())),
       status: result.status())
   }
 
@@ -114,14 +110,13 @@ struct HandleController: RouteCollection {
     if handle.count <= 3 {
       return .notFound(handle)
     }
-    let result: [Handle]
-    if database is PostgresDatabase {
-      result = try await Handle.query(on: database).filter(\.$handle >= handle).filter(
+    let result: [Handle] = if database is PostgresDatabase {
+      try await Handle.query(on: database).filter(\.$handle >= handle).filter(
         \.$handle
           <= .custom(SQLFunction("CONCAT", args: SQLLiteral.string(handle), SQLLiteral.string("~")))
       ).all()
     } else {
-      result = try await Handle.query(on: database).filter(\.$handle =~ handle).all()
+      try await Handle.query(on: database).filter(\.$handle =~ handle).all()
     }
     return .list(handle, result: result)
   }
