@@ -1,9 +1,9 @@
 version: '3'
 services:
   development:
-    image: ghcr.io/kphrx/plc-handle-tracker-devcontainer:latest
+    image: ghcr.io/kphrx/swift-devcontainer:5.8-jammy
     volumes:
-    - ../..:/workspaces:cached
+      - ../..:/workspaces:cached
     command: sleep infinity
 
   db:
