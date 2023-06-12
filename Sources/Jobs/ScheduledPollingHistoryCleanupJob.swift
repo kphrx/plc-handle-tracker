@@ -14,7 +14,9 @@ struct ScheduledPollingHistoryCleanupJob: AsyncScheduledJob {
       else {
         return
       }
-      try await PollingHistory.query(on: app.db).filter(\.$insertedAt < insertedAt).delete()
+      try await PollingHistory.query(on: app.db).filter(\.$id !~ notSuccessful).filter(
+        \.$insertedAt < insertedAt
+      ).delete()
     } catch {
       app.logger.report(error: error)
     }
