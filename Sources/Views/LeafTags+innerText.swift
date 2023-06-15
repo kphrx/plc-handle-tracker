@@ -3,9 +3,9 @@ import Leaf
 extension UnsafeUnescapedLeafTag {
   func innerText(_ body: [Syntax]) -> String {
     return body.compactMap { syntax in
-      switch syntax {
-      case .raw(var byteBuffer): return byteBuffer.readString(length: byteBuffer.readableBytes)
-      default: return nil
+      return switch syntax {
+      case .raw(var byteBuffer): byteBuffer.readString(length: byteBuffer.readableBytes)
+      default: nil
       }
     }.joined(separator: "")
   }

@@ -18,19 +18,19 @@ enum DidSearchResult {
   case none
 
   func message() -> String? {
-    switch self {
-    case .notFound(let did): return "Not found: \(did)"
-    case .invalidFormat(let did): return "Invalid DID format: \(did)"
-    default: return nil
+    return switch self {
+    case .notFound(let did): "Not found: \(did)"
+    case .invalidFormat(let did): "Invalid DID format: \(did)"
+    default: nil
     }
   }
 
   func status() -> HTTPResponseStatus {
-    switch self {
-    case .notFound: return .notFound
-    case .invalidFormat: return .badRequest
-    case .redirect: return .movedPermanently
-    case .none: return .ok
+    return switch self {
+    case .notFound: .notFound
+    case .invalidFormat: .badRequest
+    case .redirect: .movedPermanently
+    case .none: .ok
     }
   }
 }
@@ -93,18 +93,14 @@ struct DidController: RouteCollection {
 
   func index(req: Request) async throws -> ViewOrRedirect {
     let query = try req.query.decode(DidIndexQuery.self)
-    let currentValue: String?
-    let result: DidSearchResult
-    if let did = query.did {
-      result = try await search(did: did, on: req.db)
-      currentValue = String(did.trimmingPrefix("did:plc:"))
+    let result: DidSearchResult = if let did = query.did {
+      try await search(did: did, on: req.db)
     } else if let specificId = query.specificId {
-      result = try await search(did: "did:plc:" + specificId, on: req.db)
-      currentValue = specificId
+      try await search(did: "did:plc:" + specificId, on: req.db)
     } else {
-      result = .none
-      currentValue = nil
+      .none
     }
+    let currentValue: String? = query.specificId ?? query.did.map({ String($0.trimmingPrefix("did:plc:")) })
     if case .redirect(let did) = result {
       return .redirect(to: "/did/\(did)")
     }

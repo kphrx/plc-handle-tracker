@@ -47,10 +47,10 @@ struct PollingPlcServerExportJob: AsyncJob {
     -> [ExportedOperation]
   {
     var url: URI = "https://plc.directory/export"
-    if let after {
-      url.query = "count=\(count)&after=\(after)"
+    url.query = if let after {
+      "count=\(count)&after=\(after)"
     } else {
-      url.query = "count=\(count)"
+      "count=\(count)"
     }
     let response = try await app.client.get(url)
     let textDecoder = try ContentConfiguration.global.requireDecoder(for: .plainText)

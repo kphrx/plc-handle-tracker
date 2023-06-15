@@ -195,25 +195,24 @@ struct ExportedOperation: Content {
       async let handle = self.resolve(handle: handleString, on: database)
       async let pds = self.resolve(
         serviceEndpoint: plcOp.services.atprotoPds.endpoint, on: database)
-      let prev: Operation?
-      if let prevOp {
-        prev = prevOp
+      let prev: Operation? = if let prevOp {
+        prevOp
       } else if let cid = plcOp.prev {
-        prev = try await self.resolve(prev: .init(cid: cid, did: self.did), on: database)
+        try await self.resolve(prev: .init(cid: cid, did: self.did), on: database)
       } else {
+        nil
+      }
+      if prev == nil {
         try await self.create(did: self.did, on: database)
-        prev = nil
       }
       return try Operation(
         cid: self.cid, did: self.did, nullified: self.nullified, createdAt: self.createdAt,
         prev: prev, handle: try await handle, pds: try await pds)
     case .plcTombstone(let tombstoneOp):
-      let prev: Operation
-      if let prevOp {
-        prev = prevOp
+      let prev: Operation = if let prevOp {
+        prevOp
       } else {
-        prev = try await self.resolve(
-          prev: .init(cid: tombstoneOp.prev, did: self.did), on: database)
+        try await self.resolve(prev: .init(cid: tombstoneOp.prev, did: self.did), on: database)
       }
       return try Operation(
         cid: self.cid, did: self.did, nullified: self.nullified,
