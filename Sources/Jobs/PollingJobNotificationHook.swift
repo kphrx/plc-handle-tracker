@@ -51,7 +51,7 @@ struct PollingJobNotificationHook: AsyncJobEventDelegate {
       return
     }
     jobStatus.completedAt = Date()
-    if let did = try await Did.find(jobStatus.did, on: database), did.banned {
+    if error is OpParseError {
       jobStatus.status = .banned
     } else {
       jobStatus.status = .error
