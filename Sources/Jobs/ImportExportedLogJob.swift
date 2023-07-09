@@ -14,29 +14,8 @@ struct ImportExportedLogJob: AsyncJob {
     if payload.ops.isEmpty {
       throw "Empty export"
     }
-    do {
-      try await app.db.transaction { transaction in
-        try await self.insert(ops: payload.ops, on: transaction)
-      }
-    } catch let error as OpParseError {
-      let exportedOp = payload.ops.first!
-      var reason = BanReason.incompatibleAtproto
-      switch error {
-      case .invalidHandle:
-        reason = .invalidHandle
-      case .unknownPreviousOp:
-        reason = .missingHistory
-      default:
-        break
-      }
-      if let did = try? await Did.find(exportedOp.did, on: app.db) {
-        did.banned = true
-        did.reason = reason
-        try? await did.update(on: app.db)
-      } else {
-        try? await Did(exportedOp.did, banned: true, reason: reason).create(on: app.db)
-      }
-      throw error
+    try await app.db.transaction { transaction in
+      try await self.insert(ops: payload.ops, on: transaction)
     }
   }
 
@@ -56,6 +35,26 @@ struct ImportExportedLogJob: AsyncJob {
   }
 
   func error(_ context: QueueContext, _ error: Error, _ payload: Payload) async throws {
-    context.application.logger.report(error: error)
+    let app = context.application
+    if let err = error as? OpParseError {
+      let exportedOp = payload.ops.first!
+      var reason: BanReason
+      switch err {
+      case .invalidHandle:
+        reason = .invalidHandle
+      case .unknownPreviousOp:
+        reason = .missingHistory
+      default:
+        reason = .incompatibleAtproto
+      }
+      if let did = try? await Did.find(exportedOp.did, on: app.db) {
+        did.banned = true
+        did.reason = reason
+        try? await did.update(on: app.db)
+      } else {
+        try? await Did(exportedOp.did, banned: true, reason: reason).create(on: app.db)
+      }
+    }
+    app.logger.report(error: error)
   }
 }
