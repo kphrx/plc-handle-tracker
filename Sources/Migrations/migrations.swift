@@ -19,4 +19,5 @@ func migrations(_ app: Application) {
   app.migrations.add(ChangePrimaryKeyToCompositeDidAndCid())
   app.migrations.add(AddPrevDidColumnForPrevForeignKey())
   app.migrations.add(CreateIndexForForeignKeyOfOperationsTable())
+  app.migrations.add(CreateFetchDidJobStatusesTable())
 }
