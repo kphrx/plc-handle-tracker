@@ -82,17 +82,19 @@ services:
       - db
       - redis
     command: ["queues"]
-  # named_worker:
-  #   image: ghcr.io/kphrx/plc-handle-tracker:latest
-  #   build:
-  #     context: .
-  #   restart: always
-  #   environment:
-  #     <<: *shared_environment
-  #   depends_on:
-  #     - db
-  #     - redis
-  #   command: ["queues", "--queue", "named"]
+  polling_worker:
+    image: ghcr.io/kphrx/plc-handle-tracker:latest
+    build:
+      context: .
+    restart: always
+    environment:
+      <<: *shared_environment
+    depends_on:
+      - db
+      - redis
+    command: ["queues", "--queue", "polling"]
+    # deploy:
+    #   replicas: 2 # scaling
 
   schedule_worker:
     image: ghcr.io/kphrx/plc-handle-tracker:latest
