@@ -15,7 +15,7 @@ struct ImportExportedLogCommand: AsyncCommand {
     let after = try await PollingPlcServerExportJob.lastPolledDateWithoutFailure(on: app.db)
     let history = PollingHistory()
     try await history.create(on: app.db)
-    try await app.queues.queue.dispatch(
+    try await app.queues.queue(.polling).dispatch(
       PollingPlcServerExportJob.self,
       .init(after: after, count: signature.count ?? 1000, history: history)
     )
