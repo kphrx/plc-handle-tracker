@@ -4,8 +4,10 @@ func jobs(_ app: Application) {
   app.queues.add(ImportAuditableLogJob())
   app.queues.add(FetchDidJob())
   app.queues.add(ImportExportedLogJob())
-  app.queues.add(PollingJobNotificationHook(on: app.db))
   app.queues.add(PollingPlcServerExportJob())
+
+  app.queues.add(PollingJobNotificationHook(on: app.db))
+  app.queues.add(FetchDidJobNotificationHook(on: app.db))
 
   let pollingInterval = Environment.get("POLLING_INTERVAL").flatMap(Int.init(_:)) ?? 30
   let pollingStart = Environment.get("POLLING_START_AT_MINUTES").flatMap(Int.init(_:)) ?? 20
