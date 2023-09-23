@@ -1,4 +1,4 @@
 version: '3'
 services:
   development:
-    image: ghcr.io/kphrx/swift-devcontainer:nightly-5.9-jammy
+    image: ghcr.io/kphrx/swift-devcontainer:nightly-5.10-jammy
