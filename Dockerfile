@@ -1,7 +1,7 @@
 # ================================
 # Build image
 # ================================
-FROM swift:5.8-jammy as build
+FROM swift:5.9-jammy as build
 
 # Install OS updates and, if needed, sqlite3
 RUN export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true \
@@ -42,7 +42,7 @@ RUN [ -d /build/Resources ] && { mv /build/Resources ./Resources && chmod -R a-w
 # ================================
 # Run image
 # ================================
-FROM swift:5.8-jammy-slim
+FROM swift:5.9-jammy-slim
 
 # Make sure all system packages are up to date, and install only essential packages.
 RUN export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true \
