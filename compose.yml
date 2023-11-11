@@ -15,6 +15,7 @@ services:
     restart: always
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "vapor_username", "-d", "vapor_database"]
+      timeout: 60s
     volumes:
       - "db_data:/var/lib/postgresql/data/pgdata"
     environment:
@@ -28,6 +29,7 @@ services:
     restart: always
     healthcheck:
       test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      timeout: 60s
     volumes:
       - "redis_data:/data"
 
@@ -44,8 +46,8 @@ services:
     depends_on:
       - db
       - redis
-    ports:
-      - '8080:8080'
+    # ports:
+    #   - '8080:8080'
     command: ["serve", "--env", "production", "--hostname", "0.0.0.0", "--port", "8080"]
 
   migrate:
@@ -82,6 +84,9 @@ services:
       - db
       - redis
     command: ["queues"]
+    # deploy:
+    #   replicas: 2 # scaling
+
   # named_worker:
   #   image: ghcr.io/kphrx/plc-handle-tracker:latest
   #   build:

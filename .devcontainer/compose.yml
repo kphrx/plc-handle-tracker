@@ -12,6 +12,7 @@ services:
     network_mode: service:development
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "vapor_username", "-d", "vapor_database"]
+      timeout: 60s
     environment:
       POSTGRES_USER: vapor_username
       POSTGRES_PASSWORD: vapor_password
