@@ -23,6 +23,7 @@ services:
       POSTGRES_USER: vapor_username
       POSTGRES_PASSWORD: vapor_password
       POSTGRES_DB: vapor_database
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=C"
 
   redis:
     image: redis:7-alpine
