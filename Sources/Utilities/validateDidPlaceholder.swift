@@ -8,5 +8,5 @@ func validateDidPlaceholder(_ did: String) -> Bool {
   {
     return false
   }
-  return specificId.count >= 24
+  return specificId.count == 24
 }
