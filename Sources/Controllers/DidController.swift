@@ -137,6 +137,12 @@ struct DidController: RouteCollection {
         \.$operations, { operation in operation.with(\.$handle).with(\.$pds) }
       ).first()
     else {
+      if FetchDidJobStatus.query(on: req.db).filter(\.$did == did).filter(\.$status ~~ [.error]).first() != nil {
+        throw Abort(.notFound, reason: "Fetching...")
+      }
+      if FetchDidJobStatus.query(on: req.db).filter(\.$did == did).filter(\.$status ~~ [.queued, .running]).first() != nil {
+        throw Abort(.notFound, reason: "Fetching...")
+      }
       do {
         try await req.queue.dispatch(FetchDidJob.self, did)
       } catch {

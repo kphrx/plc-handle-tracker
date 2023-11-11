@@ -16,6 +16,7 @@ struct FetchDidJob: AsyncJob {
       try await app.queues.queue.dispatch(ImportAuditableLogJob.self, payload)
     } else {
       app.logger.debug("Not found DID: \(payload), resCode: \(res.status.code)")
+      throw "Not found"
     }
   }
 
