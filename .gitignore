@@ -13,4 +13,4 @@
 .build/
 
 # contains only example
-/compose.yml
+/compose.*.yml
