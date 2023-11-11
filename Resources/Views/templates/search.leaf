@@ -45,6 +45,8 @@ span[data-prefix]::before {
   content: attr(data-prefix);
   position: absolute;
   inset: 0px 8px;
+  z-index: 1;
+  pointer-events: none;
   font-size: medium;
   font-family: Courier, monospace;
   opacity: .8;
@@ -54,7 +56,6 @@ span[data-prefix] > input::placeholder {
 }
 span[data-prefix] > input {
   position: relative;
-  z-index: -1;
   font-size: medium;
   font-family: Courier, monospace;
   padding-left: calc(var(--prefix-width, 1em) + 8px);
