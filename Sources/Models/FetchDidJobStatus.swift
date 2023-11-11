@@ -29,7 +29,7 @@ final class FetchDidJobStatus: Model, Content {
   var updatedAt: Date!
 
   enum Status: Int16, CaseIterable, Codable {
-    case queued, running, success, error, banned
+    case queued, running, success, error
   }
 
   init() {}

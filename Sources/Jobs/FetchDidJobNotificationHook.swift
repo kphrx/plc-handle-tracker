@@ -47,11 +47,7 @@ struct FetchDidJobNotificationHook: AsyncJobEventDelegate {
       return
     }
     jobStatus.completedAt = Date()
-    if error is OpParseError {
-      jobStatus.status = .banned
-    } else {
-      jobStatus.status = .error
-    }
+    jobStatus.status = .error
     try await jobStatus.update(on: self.database)
   }
 }
