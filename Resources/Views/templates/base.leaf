@@ -10,55 +10,6 @@
     #endif
   </title>
 
-<style id=base-style>
-body {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  margin: 0 auto;
-  width: max-content;
-  max-width: 100vw;
-}
-
-body > header {
-  padding: 16px;
-}
-#app-title {
-  margin: 0 48px;
-}
-body > header > nav {
-  margin: 5px;
-}
-body > header > nav > p {
-  margin: 0;
-}
-body > header > nav > ul {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  list-style: none;
-  padding: 0;
-  margin: 0 auto;
-  width: max-content;
-  max-width: 320px;
-}
-
-main {
-  flex: auto;
-  padding: 8px;
-}
-#page-title {
-  margin-top: 0;
-}
-
-body > footer {
-  padding: 16px;
-}
-#license {
-  margin: 0;
-}
-</style>
-
   <link rel="stylesheet" href="/styles/base.css">
 
 #import("head")
