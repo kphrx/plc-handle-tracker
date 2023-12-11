@@ -33,10 +33,21 @@ jobs:
 
     - name: Install dependencies
       run: swift package resolve
+
     - name: Build
+      if: runner.debug != '1'
+      run: swift build
+    - name: Build (verbose)
+      if: runner.debug == '1'
       run: swift build -v
+
     #- name: Run tests
+    #  if: runner.debug != '1'
+    #  run: swift test
+    #- name: Run tests (verbose)
+    #  if: runner.debug == '1'
     #  run: swift test -v
+
 
   reviewdog-format:
 
