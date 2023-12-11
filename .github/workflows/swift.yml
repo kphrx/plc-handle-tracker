@@ -1,0 +1,105 @@
+# This workflow will build a Swift project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-swift
+
+name: Swift
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+env:
+  SWIFT_VERSION: '5.9'
+  SWIFT_FORMAT_VERSION: '509.0.0'
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: swift-actions/setup-swift@v1
+      with:
+        swift-version: ${{ env.SWIFT_VERSION }}
+    - name: Restore dependencies cache
+      uses: actions/cache@v3
+      with:
+        path: |
+          .build/repositories
+          .build/checkouts
+        key: ${{ runner.os }}-swiftpm-${{ hashFiles('**/Package.*') }}
+
+    - name: Install dependencies
+      run: swift package resolve
+
+    - name: Build
+      if: runner.debug != '1'
+      run: swift build
+    - name: Build (verbose)
+      if: runner.debug == '1'
+      run: swift build -v
+
+    #- name: Run tests
+    #  if: runner.debug != '1'
+    #  run: swift test
+    #- name: Run tests (verbose)
+    #  if: runner.debug == '1'
+    #  run: swift test -v
+
+
+  reviewdog-format:
+
+    name: Formatting
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Swift
+      uses: swift-actions/setup-swift@v1
+      with:
+        swift-version: ${{ env.SWIFT_VERSION }}
+
+    - name: Restore build cache
+      uses: actions/cache@v3
+      id: cache
+      with:
+        path: ./vendor/swift-format/.build
+        key: ${{ runner.os }}-swift-format-${{ env.SWIFT_FORMAT_VERSION }}
+
+    - name: Checkout apple/swift-format
+      if: steps.cache.outputs.cache-hit != 'true'
+      uses: actions/checkout@v4
+      with:
+        repository: apple/swift-format
+        ref: ${{ env.SWIFT_FORMAT_VERSION }}
+        path: vendor/swift-format
+
+    - name: Build swift-format
+      if: steps.cache.outputs.cache-hit != 'true'
+      working-directory: ./vendor/swift-format
+      run: |
+        swift package resolve
+        swift build -c release
+        echo "${PWD}/.build/release" >> $GITHUB_PATH
+
+    - name: Install swift-format
+      if: steps.cache.outputs.cache-hit == 'true'
+      run: |
+        echo "${PWD}/vendor/swift-format/.build/release" >> $GITHUB_PATH
+
+    - name: Run format
+      run: swift format -ir Sources/ Package.swift
+
+    - name: Reviewdog suggester / mix format
+      uses: reviewdog/action-suggester@v1
+      with:
+        tool_name: swift-format
+        filter_mode: file
+        fail_on_error: true
