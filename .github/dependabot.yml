@@ -11,7 +11,7 @@ updates:
       interval: "weekly"
     groups:
       dependencies:
-        patterns: *
+        patterns: "*"
 
   - package-ecosystem: "docker"
     directory: "/"
