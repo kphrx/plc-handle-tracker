@@ -9,20 +9,15 @@ struct ErrorContext: BaseContext {
 struct ErrorMiddleware: AsyncMiddleware {
   let environment: Environment
 
-  func respond(to req: Request, chainingTo next: AsyncResponder) async throws -> Response {
+  func respond(to req: Request, chainingTo next: AsyncResponder) async -> Response {
     do {
       return try await next.respond(to: req)
     } catch {
-      let abort = error
-      do {
-        return try await self.handle(error: abort, for: req)
-      } catch {
-        throw abort
-      }
+      return await self.handle(error: error, for: req)
     }
   }
 
-  private func handle(error: Error, for req: Request) async throws -> Response {
+  private func handle(error: Error, for req: Request) async -> Response {
     let status: HTTPStatus
     let reason: String?
     switch error {
@@ -38,12 +33,26 @@ struct ErrorMiddleware: AsyncMiddleware {
       reason: reason)
     let res: Response
     do {
-      res = try await req.view.render("error/\(status.code)", context).encodeResponse(for: req)
+      res = try await self.render(for: req, code: status.code, context: context)
     } catch {
-      res = try await req.view.render("error/default", context).encodeResponse(for: req)
+      res = .init(
+        body: .init(
+          string: "Oops: \(reason ?? "Something went wrong.")",
+          byteBufferAllocator: req.byteBufferAllocator))
+      res.headers.add(name: .contentType, value: "text/plain; charset=utf-8")
     }
     res.status = status
     req.logger.report(error: error)
     return res
+  }
+
+  private func render(for req: Request, code statusCode: UInt, context: ErrorContext) async throws
+    -> Response
+  {
+    do {
+      return try await req.view.render("error/\(statusCode)", context).encodeResponse(for: req)
+    } catch {
+      return try await req.view.render("error/default", context).encodeResponse(for: req)
+    }
   }
 }
