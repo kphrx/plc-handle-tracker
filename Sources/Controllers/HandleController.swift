@@ -132,43 +132,40 @@ struct HandleController: RouteCollection {
     }
     guard
       let handle = try await Handle.query(on: req.db).filter(\.$handle == handleName).with(
-        \.$operations,
-        {
-          $0.with(\.$pds).with(\.$id.$did) {
-            $0.with(\.$operations) { $0.with(\.$handle).with(\.$pds) }
-          }
-        }
+        \.$operations, { $0.with(\.$pds).with(\.$id.$did) }
       ).first()
     else {
       throw Abort(.notFound)
     }
-    let operations = try mergeSort(handle.operations).compactMap {
-      operation -> HandleShowContext.UpdateHandleOp? in
-      guard let didOps = try treeSort(operation.did.operations).first else {
-        throw Abort(.internalServerError, reason: "Broken operation tree")
+    let handleId = try handle.requireID()
+    var operations = [HandleShowContext.UpdateHandleOp]()
+    var lastId: Operation.IDValue?
+    for operation in mergeSort(handle.operations) {
+      let prev = lastId
+      lastId = try operation.requireID()
+      if prev != nil && prev == operation.$prev.id {
+        continue
       }
-      let updateHandleOps = try onlyUpdateHandle(op: didOps)
-      guard let since = updateHandleOps.firstIndex(where: { $0.id == operation.id }) else {
-        return nil
+      let did = try operation.did.requireID()
+      guard
+        let untilOp = try await operation.did.$operations.query(on: req.db).filter(
+          \.$createdAt > operation.createdAt
+        ).filter(\.$handle.$id != handleId).first()
+      else {
+        let lastOp =
+          try await operation.did.$operations.query(on: req.db).with(\.$pds).sort(
+            \.$createdAt, .descending
+          ).first() ?? operation
+        operations.append(
+          .init(
+            did: did, pds: lastOp.pds!.endpoint, createdAt: operation.createdAt, updatedAt: nil))
+        continue
       }
-      let until: Operation?
-      let pds: PersonalDataServer
-      if since < updateHandleOps.indices.last! {
-        until = updateHandleOps[since + 1]
-        pds = operation.pds!
-      } else {
-        until = nil
-        guard let lastOp = didOps.last else {
-          throw Abort(.internalServerError, reason: "Not expected empty did plc")
-        }
-        guard let lastPds = lastOp.pds else {
-          throw Abort(.internalServerError, reason: "Not expected empty latest server")
-        }
-        pds = lastPds
-      }
-      return .init(
-        did: try operation.did.requireID(), pds: pds.endpoint, createdAt: operation.createdAt,
-        updatedAt: until?.createdAt)
+      try await untilOp.$pds.load(on: req.db)
+      operations.append(
+        .init(
+          did: did, pds: untilOp.pds!.endpoint, createdAt: operation.createdAt,
+          updatedAt: untilOp.createdAt))
     }
     return try await req.view.render(
       "handle/show",
