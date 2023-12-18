@@ -1,68 +1,6 @@
 #extend("templates/base"):
   #export("head"):
-<style id=status-style>
-h2 {
-  margin-top: 3rem;
-  margin-bottom: 1rem;
-  font-size: 1.3rem;
-  text-align: center;
-}
-
-dl, table {
-  margin: 0 auto;
-  width: max-content;
-  max-width: calc(100vw - 16px);
-}
-
-dl {
-  display: grid;
-  grid-template-columns: 5rem 1fr;
-  gap: .5rem 1rem;
-}
-dl > dt {
-  font-weight: bold;
-  text-align: right;
-  grid-column-start: 1;
-}
-dl > dd {
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  grid-column-start: 2;
-}
-p {
-  text-align: center;
-}
-
-table {
-  display: block;
-  overflow-x: auto;
-}
-table > caption {
-  max-width: calc(100vw - 16px);
-  position: sticky;
-  top: 0;
-  left: 0;
-}
-th, td {
-  padding: 5px;
-}
-
-tbody {
-  white-space: nowrap;
-}
-
-tbody th {
-  text-align: left;
-}
-
-tbody td {
-  min-width: 200px;
-  text-align: center;
-  line-height: 1.2rem;
-}
-</style>
+  <link rel="stylesheet" href="/styles/status.css">
   #endexport
 
   #export("body"):
