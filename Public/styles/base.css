@@ -14,10 +14,10 @@ body > header > #app-title {
   margin: 0 48px;
 }
 body > header > nav {
-  margin: 5px 3px;
+  margin: 10px 0 0;
 }
 body > header > nav > p {
-  margin: 0 16px;
+  margin: 0 18px;
 }
 body > header > nav > ul {
   display: flex;
