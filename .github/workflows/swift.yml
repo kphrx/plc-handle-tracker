@@ -29,6 +29,7 @@ jobs:
         path: |
           .build/repositories
           .build/checkouts
+          .build/workspace-state.json
         key: ${{ runner.os }}-swiftpm-${{ hashFiles('**/Package.*') }}
 
     - name: Install dependencies
@@ -49,18 +50,11 @@ jobs:
     #  run: swift test -v
 
 
-  reviewdog-format:
+  install-swift-format:
 
-    name: Formatting
-    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
 
     steps:
-    - uses: actions/checkout@v4
-
     - name: Set up Swift
       uses: swift-actions/setup-swift@v1
       with:
@@ -89,13 +83,84 @@ jobs:
         swift build -c release
         echo "${PWD}/.build/release" >> $GITHUB_PATH
 
+
+  lint:
+
+    needs: install-swift-format
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Swift
+      uses: swift-actions/setup-swift@v1
+      with:
+        swift-version: ${{ env.SWIFT_VERSION }}
+
+    - name: Restore build cache
+      uses: actions/cache@v3
+      with:
+        path: ./vendor/swift-format/.build
+        key: ${{ runner.os }}-swift-format-${{ env.SWIFT_FORMAT_VERSION }}
+
     - name: Install swift-format
-      if: steps.cache.outputs.cache-hit == 'true'
+      run: |
+        echo "${PWD}/vendor/swift-format/.build/release" >> $GITHUB_PATH
+
+    - uses: reviewdog/action-setup@v1
+      with:
+        reviewdog_version: latest
+    - uses: haya14busa/action-cond@v1
+      id: reporter
+      with:
+        cond: ${{ github.event_name == 'pull_request' }}
+        if_true: "github-pr-review"
+        if_false: "github-check"
+    - uses: haya14busa/action-cond@v1
+      id: filter-mode
+      with:
+        cond: ${{ github.event_name == 'pull_request' }}
+        if_true: "file"
+        if_false: "nofilter"
+    - name: Run swift-format lint with reviewdog
+      env:
+        REVIEWDOG_GITHUB_API_TOKEN: ${{ github.token }}
+      run: |
+        reviewdog -reporter=${{ steps.reporter.outputs.value }} -runners=swift-format-lint -filter-mode=${{ steps.filter-mode.outputs.value }} -fail-on-error
+
+
+  format:
+
+    if: github.event_name == 'pull_request'
+    needs: install-swift-format
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Swift
+      uses: swift-actions/setup-swift@v1
+      with:
+        swift-version: ${{ env.SWIFT_VERSION }}
+
+    - name: Restore build cache
+      uses: actions/cache@v3
+      with:
+        path: ./vendor/swift-format/.build
+        key: ${{ runner.os }}-swift-format-${{ env.SWIFT_FORMAT_VERSION }}
+
+    - name: Install swift-format
       run: |
         echo "${PWD}/vendor/swift-format/.build/release" >> $GITHUB_PATH
 
     - name: Run format
-      run: swift format -ir Sources/ Package.swift
+      run: swift format -ipr Sources/ Package.swift
 
     - name: Reviewdog suggester / mix format
       uses: reviewdog/action-suggester@v1
