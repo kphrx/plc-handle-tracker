@@ -5,7 +5,7 @@
     <form action=/handle method=get>
       <label>
         Handle:
-        <span data-prefix=@ style="--prefix-width: .7em">
+        <span data-prefix=@ style=--prefix-count:1>
           <input type=search
                  name=name
                  #if(currentValue): value="#(currentValue)" #endif

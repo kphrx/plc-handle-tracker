@@ -1,4 +1,51 @@
-/* colors */
+/* layout */
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  margin: 0 auto;
+  width: max-content;
+  max-width: 100vw;
+}
+body > header {
+  padding: 16px;
+}
+body > header > #app-title {
+  margin: 0 48px;
+}
+body > header > nav {
+  margin: 10px 0 0;
+}
+body > header > nav > p {
+  margin: 0 18px;
+}
+body > header > nav > ul {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  list-style: none;
+  padding: 0;
+  margin: 0 auto;
+  width: max-content;
+  max-width: 320px;
+}
+
+main {
+  flex: auto;
+  padding: 8px;
+}
+main > #page-title {
+  margin-top: 0;
+}
+
+body > footer {
+  padding: 16px;
+}
+#license {
+  margin: 0;
+}
+
+/* color */
 :root {
   background: #fff;
   color: #242424;
@@ -15,7 +62,7 @@ a:active {
   color: #ee0000;
 }
 
-#app-title > a {
+body > header > #app-title > a {
   color: currentColor;
 }
 
@@ -41,7 +88,7 @@ a:active {
   font-family: sans-serif;
 }
 
-#app-title {
+body > header > #app-title {
   font-size: 1.5rem;
   font-weight: normal;
   text-align: center;
@@ -65,7 +112,7 @@ body > header > nav > p {
   font-family: monospace, serif;
 }
 
-/* github-corners */
+/* github-corner */
 #source-code {
   margin: 0;
   width: 0;
