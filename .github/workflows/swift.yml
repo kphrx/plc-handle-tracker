@@ -29,6 +29,7 @@ jobs:
         path: |
           .build/repositories
           .build/checkouts
+          .build/workspace-state.json
         key: ${{ runner.os }}-swiftpm-${{ hashFiles('**/Package.*') }}
 
     - name: Install dependencies
