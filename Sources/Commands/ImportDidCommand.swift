@@ -18,8 +18,9 @@ struct ImportDidCommand: AsyncCommand {
     let res = try await app.client.send(.HEAD, to: "https://plc.directory/\(signature.did)")
     if 299 >= res.status.code {
       try await app.queues.queue.dispatch(ImportAuditableLogJob.self, signature.did)
-      return context.console.print("Queued fetching auditable log: \(signature.did)")
+      context.console.print("Queued fetching auditable log: \(signature.did)")
+    } else {
+      context.console.print("Not found DID: \(signature.did), resCode: \(res.status.code)")
     }
-    context.console.print("Not found DID: \(signature.did), resCode: \(res.status.code)")
   }
 }

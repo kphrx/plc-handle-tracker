@@ -17,20 +17,20 @@ enum DidSearchResult {
   case redirect(_: String)
   case none
 
-  func message() -> String? {
+  var message: String? {
     switch self {
-    case .notFound(let did): return "Not found: \(did)"
-    case .invalidFormat(let did): return "Invalid DID format: \(did)"
-    default: return nil
+    case .notFound(let did): "Not found: \(did)"
+    case .invalidFormat(let did): "Invalid DID format: \(did)"
+    default: nil
     }
   }
 
-  func status() -> HTTPResponseStatus {
+  var status: HTTPResponseStatus {
     switch self {
-    case .notFound: return .notFound
-    case .invalidFormat: return .badRequest
-    case .redirect: return .movedPermanently
-    case .none: return .ok
+    case .notFound: .notFound
+    case .invalidFormat: .badRequest
+    case .redirect: .movedPermanently
+    case .none: .ok
     }
   }
 }
@@ -93,18 +93,16 @@ struct DidController: RouteCollection {
 
   func index(req: Request) async throws -> ViewOrRedirect {
     let query = try req.query.decode(DidIndexQuery.self)
-    let currentValue: String?
-    let result: DidSearchResult
-    if let did = query.did {
-      result = try await search(did: did, on: req.db)
-      currentValue = String(did.trimmingPrefix("did:plc:"))
-    } else if let specificId = query.specificId {
-      result = try await search(did: "did:plc:" + specificId, on: req.db)
-      currentValue = specificId
-    } else {
-      result = .none
-      currentValue = nil
-    }
+    let result: DidSearchResult =
+      if let did = query.did {
+        try await search(did: did, on: req.db)
+      } else if let specificId = query.specificId {
+        try await search(did: "did:plc:" + specificId, on: req.db)
+      } else {
+        .none
+      }
+    let currentValue: String? =
+      query.specificId ?? query.did.map({ String($0.trimmingPrefix("did:plc:")) })
     if case .redirect(let did) = result {
       return .redirect(to: "/did/\(did)")
     }
@@ -114,7 +112,7 @@ struct DidController: RouteCollection {
         "did/index",
         DidIndexContext(
           title: "DID Placeholders", route: req.route?.description ?? "", count: count,
-          currentValue: currentValue, message: result.message())), status: result.status())
+          currentValue: currentValue, message: result.message)), status: result.status)
   }
 
   private func search(did: String, on database: Database) async throws -> DidSearchResult {

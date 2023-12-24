@@ -9,7 +9,7 @@ struct IndexContext: BaseContext {
 
 func routes(_ app: Application) throws {
   app.get { req -> View in
-    return try await req.view.render(
+    try await req.view.render(
       "index",
       IndexContext(
         route: req.route?.description ?? "",

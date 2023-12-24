@@ -69,15 +69,16 @@ struct PollingPlcServerExportJob: AsyncJob {
     -> [String.SubSequence]
   {
     var url: URI = "https://plc.directory/export"
-    if let after = after.map({ date in
-      let dateFormatter = ISO8601DateFormatter()
-      dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-      return dateFormatter.string(from: date)
-    }) {
-      url.query = "count=\(count)&after=\(after)"
-    } else {
-      url.query = "count=\(count)"
-    }
+    url.query =
+      if let after = after.map({ date in
+        let dateFormatter = ISO8601DateFormatter()
+        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return dateFormatter.string(from: date)
+      }) {
+        "count=\(count)&after=\(after)"
+      } else {
+        "count=\(count)"
+      }
     let response = try await client.get(url)
     let textDecoder = try ContentConfiguration.global.requireDecoder(for: .plainText)
     let jsonLines = try response.content.decode(String.self, using: textDecoder).split(

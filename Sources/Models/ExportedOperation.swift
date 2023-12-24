@@ -32,7 +32,7 @@ enum OpType: String, Content {
 
 struct PlcOperation: Encodable {
   let sig: String
-  var type: OpType { return .plcOperation }
+  var type: OpType { .plcOperation }
   let prev: String?
 
   let services: Services
@@ -74,8 +74,8 @@ struct Services: Content {
 
 struct CreateOperation: Encodable {
   let sig: String
-  var type: OpType { return .create }
-  var prev: String? { return nil }
+  var type: OpType { .create }
+  var prev: String? { nil }
 
   let handle: String
   let service: String
@@ -100,7 +100,7 @@ struct CreateOperation: Encodable {
 
 struct PlcTombstone: Encodable {
   let sig: String
-  var type: OpType { return .plcTombstone }
+  var type: OpType { .plcTombstone }
   let prev: String
 
   private enum CodingKeys: String, CodingKey {
@@ -195,26 +195,27 @@ struct ExportedOperation: Content {
       async let handle = self.resolve(handle: handleString, on: database)
       async let pds = self.resolve(
         serviceEndpoint: plcOp.services.atprotoPds.endpoint, on: database)
-      let prev: Operation?
-      if let prevOp {
-        prev = prevOp
-      } else if let cid = plcOp.prev {
-        prev = try await self.resolve(prev: .init(cid: cid, did: self.did), on: database)
-      } else {
+      let prev: Operation? =
+        if let prevOp {
+          prevOp
+        } else if let cid = plcOp.prev {
+          try await self.resolve(prev: .init(cid: cid, did: self.did), on: database)
+        } else {
+          nil
+        }
+      if prev == nil {
         try await self.create(did: self.did, on: database)
-        prev = nil
       }
       return try Operation(
         cid: self.cid, did: self.did, nullified: self.nullified, createdAt: self.createdAt,
         prev: prev, handle: try await handle, pds: try await pds)
     case .plcTombstone(let tombstoneOp):
-      let prev: Operation
-      if let prevOp {
-        prev = prevOp
-      } else {
-        prev = try await self.resolve(
-          prev: .init(cid: tombstoneOp.prev, did: self.did), on: database)
-      }
+      let prev: Operation =
+        if let prevOp {
+          prevOp
+        } else {
+          try await self.resolve(prev: .init(cid: tombstoneOp.prev, did: self.did), on: database)
+        }
       return try Operation(
         cid: self.cid, did: self.did, nullified: self.nullified,
         createdAt: self.createdAt, prev: prev)

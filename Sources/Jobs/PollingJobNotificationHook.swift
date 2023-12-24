@@ -51,11 +51,12 @@ struct PollingJobNotificationHook: AsyncJobEventDelegate {
       return
     }
     jobStatus.completedAt = Date()
-    if error is OpParseError {
-      jobStatus.status = .banned
-    } else {
-      jobStatus.status = .error
-    }
+    jobStatus.status =
+      if error is OpParseError {
+        .banned
+      } else {
+        .error
+      }
     try await jobStatus.update(on: self.database)
   }
 }

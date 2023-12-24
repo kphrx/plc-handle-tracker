@@ -7,11 +7,15 @@ enum ExternalLinkTagError: Error {
 struct ExternalLinkTag: UnsafeUnescapedLeafTag {
   func render(_ ctx: LeafContext) throws -> LeafData {
     let (href, text) = try self.parameters(ctx.parameters)
-    if let body = ctx.body {
-      return LeafData.string(
-        "<a rel=noopener target=_blank href=\(href)>\(text) \(self.innerText(body))</a>")
+    return LeafData.string(self.outerText(ctx.body, href: href, text: text))
+  }
+
+  private func outerText(_ body: [Syntax]?, href: String, text: String) -> String {
+    if let body {
+      "<a rel=noopener target=_blank href=\(href)>\(text) \(self.innerText(body))</a>"
+    } else {
+      "<a rel=noopener target=_blank href=\(href)>\(text)</a>"
     }
-    return LeafData.string("<a rel=noopener target=_blank href=\(href)>\(text)</a>")
   }
 
   private func parameters(_ parameters: [LeafData]) throws -> (String, String) {
