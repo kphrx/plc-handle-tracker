@@ -1,0 +1,8 @@
+runner:
+  swift-format-lint:
+    cmd: swift format lint -spr Sources/ Package.swift
+    errorformat:
+      - "%f:%l:%c: %trror: %m"
+      - "%f:%l:%c: %tarning: %m"
+      - "%f:%l:%c: %tote: %m"
+    level: warning
