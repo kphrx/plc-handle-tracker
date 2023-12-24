@@ -32,7 +32,7 @@ enum OpType: String, Content {
 
 struct PlcOperation: Encodable {
   let sig: String
-  var type: OpType { return .plcOperation }
+  var type: OpType { .plcOperation }
   let prev: String?
 
   let services: Services
@@ -74,8 +74,8 @@ struct Services: Content {
 
 struct CreateOperation: Encodable {
   let sig: String
-  var type: OpType { return .create }
-  var prev: String? { return nil }
+  var type: OpType { .create }
+  var prev: String? { nil }
 
   let handle: String
   let service: String
@@ -100,7 +100,7 @@ struct CreateOperation: Encodable {
 
 struct PlcTombstone: Encodable {
   let sig: String
-  var type: OpType { return .plcTombstone }
+  var type: OpType { .plcTombstone }
   let prev: String
 
   private enum CodingKeys: String, CodingKey {

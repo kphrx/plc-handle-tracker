@@ -38,15 +38,15 @@ struct ImportExportedLogJob: AsyncJob {
     let app = context.application
     if let err = error as? OpParseError {
       let exportedOp = payload.ops.first!
-      var reason: BanReason
-      switch err {
-      case .invalidHandle:
-        reason = .invalidHandle
-      case .unknownPreviousOp:
-        reason = .missingHistory
-      default:
-        reason = .incompatibleAtproto
-      }
+      let reason: BanReason =
+        switch err {
+        case .invalidHandle:
+          .invalidHandle
+        case .unknownPreviousOp:
+          .missingHistory
+        default:
+          .incompatibleAtproto
+        }
       if let did = try? await Did.find(exportedOp.did, on: app.db) {
         did.banned = true
         did.reason = reason

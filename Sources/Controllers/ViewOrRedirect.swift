@@ -6,11 +6,8 @@ enum ViewOrRedirect: AsyncResponseEncodable {
 
   public func encodeResponse(for req: Request) async throws -> Response {
     switch self {
-    case .view(let view, let status):
-      let res = try await view.encodeResponse(for: req)
-      res.status = status
-      return res
-    case .redirect(let to): return req.redirect(to: to)
+    case .view(let view, let status): try await view.encodeResponse(status: status, for: req)
+    case .redirect(let to): req.redirect(to: to)
     }
   }
 }

@@ -19,7 +19,7 @@ final class Operation: Model, Content {
     }
 
     static func == (lhs: IDValue, rhs: IDValue) -> Bool {
-      return lhs.cid == rhs.cid && lhs.$did.id == rhs.$did.id
+      lhs.cid == rhs.cid && lhs.$did.id == rhs.$did.id
     }
 
     func hash(into hasher: inout Hasher) {
@@ -30,7 +30,7 @@ final class Operation: Model, Content {
   @CompositeID var id: IDValue?
 
   var did: Did {
-    return self.id!.did
+    self.id!.did
   }
 
   @Field(key: "nullified")
