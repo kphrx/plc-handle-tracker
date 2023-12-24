@@ -78,11 +78,7 @@ public func configure(_ app: Application) async throws {
   // register views
   views(app)
 
-  app.middleware.use(ErrorMiddleware(environment: app.environment))
-
-  // serve files from /Public folder
-  app.middleware.use(
-    FileMiddleware(publicDirectory: app.directory.publicDirectory, directoryAction: .redirect))
+  middleware(app)
 
   // register routes
   try routes(app)
