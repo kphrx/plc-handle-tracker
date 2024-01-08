@@ -140,8 +140,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/vapor/routing-kit.git",
       "state" : {
-        "revision" : "17a7a3facce8285fd257aa7c72d5e480351e7698",
-        "version" : "4.8.2"
+        "revision" : "2a92a7eac411a82fb3a03731be5e76773ebe1b3e",
+        "version" : "4.9.0"
       }
     },
     {
@@ -275,8 +275,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/vapor/vapor.git",
       "state" : {
-        "revision" : "67fe736c37b0ad958b9d248f010cff6c1baa5c3a",
-        "version" : "4.89.3"
+        "revision" : "0680f9f6bfab7100cd585b3186740ee7860c983e",
+        "version" : "4.91.1"
       }
     },
     {
