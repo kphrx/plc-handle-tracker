@@ -7,12 +7,7 @@ func jobs(_ app: Application) {
   app.queues.add(PollingJobNotificationHook(on: app.db))
   app.queues.add(PollingPlcServerExportJob())
 
-  app.queues.schedule(ScheduledPollingRecoveryJob()).hourly().at(5)
-  app.queues.schedule(ScheduledPollingHistoryCleanupJob()).hourly().at(10)
-  app.queues.schedule(ScheduledPollingJob()).hourly().at(20)
-  app.queues.schedule(ScheduledPollingHistoryCleanupJob()).hourly().at(25)
-  app.queues.schedule(ScheduledPollingRecoveryJob()).hourly().at(35)
-  app.queues.schedule(ScheduledPollingHistoryCleanupJob()).hourly().at(40)
-  app.queues.schedule(ScheduledPollingJob()).hourly().at(50)
-  app.queues.schedule(ScheduledPollingHistoryCleanupJob()).hourly().at(55)
+  app.queues.scheduleEvery(ScheduledPollingRecoveryJob(), stride: 30, from: 5)
+  app.queues.scheduleEvery(ScheduledPollingHistoryCleanupJob(), stride: 15, from: 10)
+  app.queues.scheduleEvery(ScheduledPollingJob(), stride: 30, from: 20)
 }
