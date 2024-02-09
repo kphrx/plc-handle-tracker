@@ -30,7 +30,7 @@ struct PollingPlcServerExportJob: AsyncJob {
     let app = context.application
     let exportedLog = try await getExportedLog(app, after: payload.after, count: payload.count)
     for (_, ops) in Dictionary(grouping: exportedLog, by: { $0.did }) {
-      if (ops.count == 1) {
+      if ops.count == 1 {
         try await app.queues.queue.dispatch(
           ImportExportedLogJob.self,
           .init(ops: ops, historyId: payload.historyId)
