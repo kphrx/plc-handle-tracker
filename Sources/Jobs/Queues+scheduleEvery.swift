@@ -5,8 +5,8 @@ extension Application.Queues {
   func scheduleEvery(_ job: ScheduledJob, stride strideStep: Int.Stride, from: Int = 0) {
     let start = from % 60
     let strideStart =
-      if strideStep >= start {
-        strideStep - start
+      if strideStep <= start {
+        start - strideStep
       } else {
         start
       }
