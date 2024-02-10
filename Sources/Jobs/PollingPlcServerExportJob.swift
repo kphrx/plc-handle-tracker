@@ -36,41 +36,35 @@ struct PollingPlcServerExportJob: AsyncJob {
 
   func dequeue(_ context: QueueContext, _ payload: Payload) async throws {
     let app = context.application
-    let exportedLog = try await self.getExportedLog(app, after: payload.after, count: payload.count)
-    for (_, ops) in Dictionary(grouping: exportedLog, by: { $0.did }) {
-      if ops.count == 1 {
-        try await app.queues.queue.dispatch(
-          ImportExportedLogJob.self,
-          .init(ops: ops, historyId: payload.historyId)
-        )
-        continue
-      }
-      for tree in try treeSort(ops) {
-        try await app.queues.queue.dispatch(
-          ImportExportedLogJob.self,
-          .init(ops: tree, historyId: payload.historyId)
-        )
-      }
+    let (exportedLog, lastCid, lastDate) = try await self.getExportedLog(
+      app, after: payload.after, count: payload.count)
+    for (_, ops) in exportedLog {
+      try await app.queues.queue.dispatch(
+        ImportExportedLogJob.self,
+        .init(ops: ops, historyId: payload.historyId)
+      )
     }
-    try await self.log(to: payload.historyId, lastOp: exportedLog.last, on: app.db)
+    try await self.log(to: payload.historyId, lastCid: lastCid, lastDate: lastDate, on: app.db)
   }
 
   private func getExportedLog(_ app: Application, after: Date?, count: UInt) async throws
-    -> [ExportedOperation]
+    -> ([String: [String]], String?, Date?)
   {
     var (ops, bannedDids, nextCount, nextAfter) = (
-      [ExportedOperation](), Set<String>(), count, after
+      [String: [String]](), Set<String>(), count, after
     )
+    var last: String?
     while true {
-      let (exportedLog, dids, last) = try await self.fetchExportedLog(
+      let (exportedLog, dids, lastCid, lastDate) = try await self.fetchExportedLog(
         app.client, after: nextAfter, count: nextCount)
-      ops += exportedLog
+      ops.merge(exportedLog, uniquingKeysWith: { $0 + $1 })
+      last = lastCid
+      nextAfter = lastDate
       bannedDids.formUnion(dids)
       if nextCount <= 1000 || exportedLog.count < 1000 {
         break
       }
       nextCount -= 1000
-      nextAfter = last
       try await Task.sleep(nanoseconds: 1_000_000_000)
     }
     for did in bannedDids {
@@ -82,11 +76,11 @@ struct PollingPlcServerExportJob: AsyncJob {
       }
       try await Did(did, banned: true).create(on: app.db)
     }
-    return ops
+    return (ops, last, nextAfter)
   }
 
   private func fetchExportedLog(_ client: Client, after: Date?, count: UInt) async throws
-    -> ([ExportedOperation], [String], Date?)
+    -> ([String: [String]], [String], String?, Date?)
   {
     var url: URI = "https://plc.directory/export"
     url.query =
@@ -100,32 +94,45 @@ struct PollingPlcServerExportJob: AsyncJob {
         "count=\(count)"
       }
     let response = try await client.get(url)
-    var (jsonLines, bannedDids) = ([ExportedOperation](), [String]())
+    var (exportedLog, bannedDids) = ([String: [String]](), [String]())
     var lastDate: Date?
+    var lastCid: String?
     for jsonLine in try response.content.decode(String.self, using: self.textDecoder).split(
       separator: "\n"
     ).map(String.init(_:)) {
       do {
         let exportedOp = try self.jsonDecoder.decode(
           ExportedOperation.self, from: .init(string: jsonLine), headers: [:])
+        lastCid = exportedOp.cid
         lastDate = exportedOp.createdAt
-        jsonLines.append(exportedOp)
-      } catch OpParseError.notUsedInAtproto(let did, let createdAt) {
+        let did = exportedOp.did
+        if bannedDids.contains(did) {
+          continue
+        }
+        if exportedLog[did] == nil {
+          exportedLog[did] = []
+        }
+        exportedLog[did]?.append(jsonLine)
+      } catch OpParseError.notUsedInAtproto(let cid, let did, let createdAt) {
+        lastCid = cid
         lastDate = createdAt
         bannedDids.append(did)
+        exportedLog.removeValue(forKey: did)
       }
     }
-    return (jsonLines, bannedDids, lastDate)
+    return (exportedLog, bannedDids, lastCid, lastDate)
   }
 
-  private func log(to historyId: UUID, lastOp: ExportedOperation?, on database: Database)
+  private func log(to historyId: UUID, lastCid: String?, lastDate: Date?, on database: Database)
     async throws
   {
-    guard let lastOp, let history = try await PollingHistory.find(historyId, on: database) else {
+    guard let lastCid, let lastDate,
+      let history = try await PollingHistory.find(historyId, on: database)
+    else {
       throw "Empty export"
     }
-    history.cid = lastOp.cid
-    history.createdAt = lastOp.createdAt
+    history.cid = lastCid
+    history.createdAt = lastDate
     return try await history.update(on: database)
   }
 

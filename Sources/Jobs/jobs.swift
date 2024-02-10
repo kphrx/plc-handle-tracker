@@ -3,8 +3,8 @@ import Vapor
 func jobs(_ app: Application) throws {
   app.queues.add(ImportAuditableLogJob())
   app.queues.add(FetchDidJob())
-  app.queues.add(ImportExportedLogJob())
-  app.queues.add(PollingJobNotificationHook(on: app.db))
+  app.queues.add(try ImportExportedLogJob())
+  app.queues.add(try PollingJobNotificationHook(on: app.db))
   app.queues.add(try PollingPlcServerExportJob())
 
   let pollingInterval = Environment.get("POLLING_INTERVAL").flatMap(Int.init(_:)) ?? 30

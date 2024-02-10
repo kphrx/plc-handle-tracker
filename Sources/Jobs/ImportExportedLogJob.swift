@@ -5,8 +5,14 @@ import Vapor
 
 struct ImportExportedLogJob: AsyncJob {
   struct Payload: Content {
-    let ops: [ExportedOperation]
+    let ops: [String]
     let historyId: UUID
+  }
+
+  private let jsonDecoder: ContentDecoder
+
+  init() throws {
+    self.jsonDecoder = try ContentConfiguration.global.requireDecoder(for: .json)
   }
 
   func dequeue(_ context: QueueContext, _ payload: Payload) async throws {
@@ -14,30 +20,45 @@ struct ImportExportedLogJob: AsyncJob {
     if payload.ops.isEmpty {
       throw "Empty export"
     }
+    let ops = try self.jsonDecoder.decode(
+      [ExportedOperation].self, from: .init(string: "[\(payload.ops.joined(separator: ","))]"),
+      headers: [:])
     try await app.db.transaction { transaction in
-      try await self.insert(ops: payload.ops, on: transaction)
+      if ops.count == 1 {
+        _ = try await self.insert(ops: ops[0], on: transaction)
+        return
+      }
+      try await self.treeInsert(ops: ops, on: transaction)
     }
   }
 
-  private func insert(ops operations: [ExportedOperation], on database: Database) async throws {
-    var prevOp: Operation?
-    for exportedOp in operations {
-      if let operation = try await Operation.find(
-        .init(cid: exportedOp.cid, did: exportedOp.did), on: database)
-      {
-        prevOp = operation
-        continue
+  private func treeInsert(ops operations: [ExportedOperation], on database: Database) async throws {
+    for tree in try treeSort(operations) {
+      var prevOp: Operation?
+      for exportedOp in tree {
+        prevOp = try await self.insert(ops: exportedOp, prev: prevOp, on: database)
       }
-      let operation = try await exportedOp.normalize(prev: prevOp, on: database)
-      try await operation.create(on: database)
-      prevOp = operation
     }
+  }
+
+  private func insert(
+    ops exportedOp: ExportedOperation, prev: Operation? = nil, on database: Database
+  ) async throws -> Operation {
+    if let operation = try await Operation.find(
+      .init(cid: exportedOp.cid, did: exportedOp.did), on: database)
+    {
+      return operation
+    }
+    let operation = try await exportedOp.normalize(on: database)
+    try await operation.create(on: database)
+    return operation
   }
 
   func error(_ context: QueueContext, _ error: Error, _ payload: Payload) async throws {
     let app = context.application
     if let err = error as? OpParseError {
-      let exportedOp = payload.ops.first!
+      let exportedOp = try self.jsonDecoder.decode(
+        ExportedOperation.self, from: .init(string: payload.ops.first!), headers: [:])
       let reason: BanReason =
         switch err {
         case .invalidHandle:

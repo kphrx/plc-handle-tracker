@@ -4,7 +4,7 @@ import Foundation
 import Vapor
 
 enum OpParseError: Error {
-  case notUsedInAtproto(String, Date)
+  case notUsedInAtproto(String, String, Date)
   case notFoundAtprotoHandle
   case invalidHandle
   case unknownPreviousOp
@@ -164,7 +164,7 @@ struct ExportedOperation: Content {
         let atprotoPds = operation.services?["atproto_pds"],
         atprotoPds.type == "AtprotoPersonalDataServer"
       else {
-        throw OpParseError.notUsedInAtproto(self.did, self.createdAt)
+        throw OpParseError.notUsedInAtproto(self.cid, self.did, self.createdAt)
       }
       self.operation = .plcOperation(
         .init(
