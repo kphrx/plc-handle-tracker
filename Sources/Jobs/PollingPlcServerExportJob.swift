@@ -71,6 +71,7 @@ struct PollingPlcServerExportJob: AsyncJob {
       }
       nextCount -= 1000
       nextAfter = last
+      try await Task.sleep(nanoseconds: 1_000_000_000)
     }
     for did in bannedDids {
       if let did = try await Did.find(did, on: app.db) {
