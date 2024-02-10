@@ -26,9 +26,17 @@ struct PollingPlcServerExportJob: AsyncJob {
     }
   }
 
+  private let jsonDecoder: ContentDecoder
+  private let textDecoder: ContentDecoder
+
+  init() throws {
+    self.jsonDecoder = try ContentConfiguration.global.requireDecoder(for: .json)
+    self.textDecoder = try ContentConfiguration.global.requireDecoder(for: .plainText)
+  }
+
   func dequeue(_ context: QueueContext, _ payload: Payload) async throws {
     let app = context.application
-    let exportedLog = try await getExportedLog(app, after: payload.after, count: payload.count)
+    let exportedLog = try await self.getExportedLog(app, after: payload.after, count: payload.count)
     for (_, ops) in Dictionary(grouping: exportedLog, by: { $0.did }) {
       if ops.count == 1 {
         try await app.queues.queue.dispatch(
@@ -50,17 +58,19 @@ struct PollingPlcServerExportJob: AsyncJob {
   private func getExportedLog(_ app: Application, after: Date?, count: UInt) async throws
     -> [ExportedOperation]
   {
-    let jsonLines = try await self.fetchExportedLog(app.client, after: after, count: count)
-    let jsonDecoder = try ContentConfiguration.global.requireDecoder(for: .json)
-    var bannedDids: [String] = []
-    let ops = try jsonLines.compactMap { json in
-      do {
-        return try jsonDecoder.decode(
-          ExportedOperation.self, from: .init(string: String(json)), headers: [:])
-      } catch OpParseError.notUsedInAtproto(let did, _) {
-        bannedDids.append(did)
-        return nil
+    var (ops, bannedDids, nextCount, nextAfter) = (
+      [ExportedOperation](), Set<String>(), count, after
+    )
+    while true {
+      let (exportedLog, dids, last) = try await self.fetchExportedLog(
+        app.client, after: nextAfter, count: nextCount)
+      ops += exportedLog
+      bannedDids.formUnion(dids)
+      if nextCount <= 1000 || exportedLog.count < 1000 {
+        break
       }
+      nextCount -= 1000
+      nextAfter = last
     }
     for did in bannedDids {
       if let did = try await Did.find(did, on: app.db) {
@@ -75,7 +85,7 @@ struct PollingPlcServerExportJob: AsyncJob {
   }
 
   private func fetchExportedLog(_ client: Client, after: Date?, count: UInt) async throws
-    -> [String.SubSequence]
+    -> ([ExportedOperation], [String], Date?)
   {
     var url: URI = "https://plc.directory/export"
     url.query =
@@ -89,24 +99,22 @@ struct PollingPlcServerExportJob: AsyncJob {
         "count=\(count)"
       }
     let response = try await client.get(url)
-    let textDecoder = try ContentConfiguration.global.requireDecoder(for: .plainText)
-    let jsonLines = try response.content.decode(String.self, using: textDecoder).split(
-      separator: "\n")
-    if count <= 1000 || jsonLines.count < 1000 {
-      return jsonLines
+    var (jsonLines, bannedDids) = ([ExportedOperation](), [String]())
+    var lastDate: Date?
+    for jsonLine in try response.content.decode(String.self, using: self.textDecoder).split(
+      separator: "\n"
+    ).map(String.init(_:)) {
+      do {
+        let exportedOp = try self.jsonDecoder.decode(
+          ExportedOperation.self, from: .init(string: jsonLine), headers: [:])
+        lastDate = exportedOp.createdAt
+        jsonLines.append(exportedOp)
+      } catch OpParseError.notUsedInAtproto(let did, let createdAt) {
+        lastDate = createdAt
+        bannedDids.append(did)
+      }
     }
-    let jsonDecoder = try ContentConfiguration.global.requireDecoder(for: .json)
-    var nextAfter: Date?
-    do {
-      let lastOp = try jsonDecoder.decode(
-        ExportedOperation.self, from: .init(string: String(jsonLines.last!)), headers: [:])
-      nextAfter = lastOp.createdAt
-    } catch OpParseError.notUsedInAtproto(_, let createdAt) {
-      nextAfter = createdAt
-    }
-    let nextJsonLines = try await self.fetchExportedLog(
-      client, after: nextAfter, count: count - 1000)
-    return jsonLines + nextJsonLines
+    return (jsonLines, bannedDids, lastDate)
   }
 
   private func log(to historyId: UUID, lastOp: ExportedOperation?, on database: Database)

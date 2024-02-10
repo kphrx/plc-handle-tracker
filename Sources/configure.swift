@@ -56,7 +56,7 @@ func jobQueueConfig(_ app: Application) throws {
         pool: .init(connectionRetryTimeout: .seconds(60)))))
 
   // register jobs
-  jobs(app)
+  try jobs(app)
 
   if (Environment.get("INPROCESS_JOB") ?? "false") == "true" {
     try app.queues.startInProcessJobs(on: .default)
