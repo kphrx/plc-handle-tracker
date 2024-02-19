@@ -8,7 +8,7 @@ struct ScheduledPollingJob: AsyncScheduledJob {
       let after = try await PollingPlcServerExportJob.lastPolledDateWithoutFailure(on: app.db)
       let history = PollingHistory()
       try await history.create(on: app.db)
-      try await app.queues.queue.dispatch(
+      try await app.queues.queue(.polling).dispatch(
         PollingPlcServerExportJob.self,
         .init(
           after: after, count: Environment.get("POLLING_MAX_COUNT").flatMap(UInt.init(_:)) ?? 1000,
