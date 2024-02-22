@@ -44,12 +44,14 @@ func connectDatabase(_ app: Application) {
       connectionPoolTimeout: .seconds(60)), as: .psql)
 }
 
+func connectRedis(_ app: Application) throws {
+  app.redis.configuration = try .init(
+    url: Environment.get("REDIS_URL", "redis://localhost:6379"),
+    pool: .init(connectionRetryTimeout: .seconds(60)))
+}
+
 func startJobQueuing(_ app: Application) throws {
-  try app.queues.use(
-    .redis(
-      .init(
-        url: Environment.get("REDIS_URL", "redis://localhost:6379"),
-        pool: .init(connectionRetryTimeout: .seconds(60)))))
+  app.queues.use(.redis(app.redis.configuration!))
 
   if Environment.getBool("INPROCESS_JOB") {
     try app.queues.startInProcessJobs(on: .default)
@@ -61,6 +63,9 @@ func startJobQueuing(_ app: Application) throws {
 // configures your application
 public func configure(_ app: Application) async throws {
   connectDatabase(app)
+  try connectRedis(app)
+
+  app.caches.use(.redis)
 
   registerCustomCoder()
   registerMigrations(app)
