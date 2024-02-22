@@ -1,7 +1,7 @@
 import Fluent
 import Vapor
 
-func migrations(_ app: Application) {
+func registerMigrations(_ app: Application) {
   app.migrations.add(CreateDidsTable())
   app.migrations.add(CreateHandlesTable())
   app.migrations.add(CreatePersonalDataServersTable())

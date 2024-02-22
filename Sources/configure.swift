@@ -3,7 +3,7 @@ import FluentPostgresDriver
 import QueuesRedisDriver
 import Vapor
 
-func customCoder() {
+func registerCustomCoder() {
   // milliseconds RFC 3339 encoder/decoder
   let dateFormatter = ISO8601DateFormatter()
   dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
@@ -32,7 +32,7 @@ func customCoder() {
   ContentConfiguration.global.use(decoder: decoder, for: .jsonAPI)
 }
 
-func databaseConfig(_ app: Application) {
+func connectDatabase(_ app: Application) {
   app.databases.use(
     .postgres(
       configuration: .init(
@@ -43,43 +43,34 @@ func databaseConfig(_ app: Application) {
         password: Environment.get("DATABASE_PASSWORD") ?? "vapor_password",
         database: Environment.get("DATABASE_NAME") ?? "vapor_database", tls: .disable),
       connectionPoolTimeout: .seconds(60)), as: .psql)
-
-  // register migrations
-  migrations(app)
 }
 
-func jobQueueConfig(_ app: Application) throws {
+func startJobQueuing(_ app: Application) throws {
   try app.queues.use(
     .redis(
       .init(
         url: Environment.get("REDIS_URL") ?? "redis://localhost:6379",
         pool: .init(connectionRetryTimeout: .seconds(60)))))
 
-  // register jobs
-  jobs(app)
-
   if (Environment.get("INPROCESS_JOB") ?? "false") == "true" {
     try app.queues.startInProcessJobs(on: .default)
+    try app.queues.startInProcessJobs(on: .polling)
     try app.queues.startScheduledJobs()
   }
 }
 
 // configures your application
 public func configure(_ app: Application) async throws {
-  customCoder()
+  connectDatabase(app)
 
-  databaseConfig(app)
+  registerCustomCoder()
+  registerMigrations(app)
+  registerJobs(app)
+  registerCommands(app)
+  registerViews(app)
+  registerMiddleware(app)
 
-  try jobQueueConfig(app)
-
-  // register commands
-  commands(app)
-
-  // register views
-  views(app)
-
-  middleware(app)
-
-  // register routes
   try routes(app)
+
+  try startJobQueuing(app)
 }
