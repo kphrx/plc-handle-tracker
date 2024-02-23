@@ -87,7 +87,7 @@ struct HandleController: RouteCollection {
     let query = try req.query.decode(HandleIndexQuery.self)
     let result: HandleSearchResult =
       if let handle = query.name {
-        try await search(handle: handle, on: req.db)
+        try await self.search(handle: handle, on: req.db)
       } else {
         .none
       }

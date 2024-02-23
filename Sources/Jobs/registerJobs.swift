@@ -14,21 +14,7 @@ func registerJobs(_ app: Application) {
   app.queues.scheduleEvery(
     ScheduledPollingRecoveryJob(), stride: pollingInterval, from: pollingStart + afterRecovery)
 
-  let disableCleanupHistory =
-    Environment.get("DISABLE_POLLING_HISTORY_CLEANUP").flatMap({
-      switch $0.lowercased() {
-      case "true", "t", "yes", "y":
-        return true
-      case "false", "f", "no", "n", "":
-        return false
-      default:
-        if let int = Int($0) {
-          return int != 0
-        }
-        return nil
-      }
-    }) ?? false
-  if disableCleanupHistory {
+  if Environment.getBool("DISABLE_POLLING_HISTORY_CLEANUP") {
     return
   }
   let cleanupInterval =

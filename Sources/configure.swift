@@ -52,7 +52,7 @@ func startJobQueuing(_ app: Application) throws {
         url: Environment.get("REDIS_URL") ?? "redis://localhost:6379",
         pool: .init(connectionRetryTimeout: .seconds(60)))))
 
-  if (Environment.get("INPROCESS_JOB") ?? "false") == "true" {
+  if Environment.getBool("INPROCESS_JOB") {
     try app.queues.startInProcessJobs(on: .default)
     try app.queues.startInProcessJobs(on: .polling)
     try app.queues.startScheduledJobs()
