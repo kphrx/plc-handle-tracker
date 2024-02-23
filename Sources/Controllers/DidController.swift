@@ -93,16 +93,16 @@ struct DidController: RouteCollection {
 
   func index(req: Request) async throws -> ViewOrRedirect {
     let query = try req.query.decode(DidIndexQuery.self)
+    let (specificId, did) =
+      query.specificId.map({ ($0, "did:plc:" + $0) }) ?? query.did.map({
+        (String($0.trimmingPrefix("did:plc:")), $0)
+      }) ?? (nil, nil)
     let result: DidSearchResult =
-      if let did = query.did {
-        try await self.search(did: did, on: req.db)
-      } else if let specificId = query.specificId {
-        try await self.search(did: "did:plc:" + specificId, on: req.db)
+      if let did {
+        try await self.search(did: did, req: req)
       } else {
         .none
       }
-    let currentValue: String? =
-      query.specificId ?? query.did.map({ String($0.trimmingPrefix("did:plc:")) })
     if case .redirect(let did) = result {
       return .redirect(to: "/did/\(did)", redirectType: .permanent)
     }
@@ -112,13 +112,13 @@ struct DidController: RouteCollection {
         "did/index",
         DidIndexContext(
           title: "DID Placeholders", route: req.route?.description ?? "", count: count,
-          currentValue: currentValue, message: result.message)), status: result.status)
+          currentValue: specificId, message: result.message)), status: result.status)
   }
 
-  private func search(did: String, on database: Database) async throws -> DidSearchResult {
+  private func search(did: String, req: Request) async throws -> DidSearchResult {
     if !Did.validate(did: did) {
       .invalidFormat(did)
-    } else if try await Did.find(did, on: database) != nil {
+    } else if try await req.didRepository.search(did: did) {
       .redirect(did)
     } else {
       .notFound(did)
