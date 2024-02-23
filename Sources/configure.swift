@@ -36,12 +36,11 @@ func connectDatabase(_ app: Application) {
   app.databases.use(
     .postgres(
       configuration: .init(
-        hostname: Environment.get("DATABASE_HOST") ?? "localhost",
-        port: Environment.get("DATABASE_PORT").flatMap(Int.init(_:))
-          ?? SQLPostgresConfiguration.ianaPortNumber,
-        username: Environment.get("DATABASE_USERNAME") ?? "vapor_username",
-        password: Environment.get("DATABASE_PASSWORD") ?? "vapor_password",
-        database: Environment.get("DATABASE_NAME") ?? "vapor_database", tls: .disable),
+        hostname: Environment.get("DATABASE_HOST", "localhost"),
+        port: Environment.getInt("DATABASE_PORT", SQLPostgresConfiguration.ianaPortNumber),
+        username: Environment.get("DATABASE_USERNAME", "vapor_username"),
+        password: Environment.get("DATABASE_PASSWORD", "vapor_password"),
+        database: Environment.get("DATABASE_NAME", "vapor_database"), tls: .disable),
       connectionPoolTimeout: .seconds(60)), as: .psql)
 }
 
@@ -49,7 +48,7 @@ func startJobQueuing(_ app: Application) throws {
   try app.queues.use(
     .redis(
       .init(
-        url: Environment.get("REDIS_URL") ?? "redis://localhost:6379",
+        url: Environment.get("REDIS_URL", "redis://localhost:6379"),
         pool: .init(connectionRetryTimeout: .seconds(60)))))
 
   if Environment.getBool("INPROCESS_JOB") {

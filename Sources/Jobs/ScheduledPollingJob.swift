@@ -10,9 +10,7 @@ struct ScheduledPollingJob: AsyncScheduledJob {
       try await history.create(on: app.db)
       try await app.queues.queue(.polling).dispatch(
         PollingPlcServerExportJob.self,
-        .init(
-          after: after, count: Environment.get("POLLING_MAX_COUNT").flatMap(UInt.init(_:)) ?? 1000,
-          history: history)
+        .init(after: after, count: Environment.getUInt("POLLING_MAX_COUNT", 1000), history: history)
       )
     } catch {
       app.logger.report(error: error)
