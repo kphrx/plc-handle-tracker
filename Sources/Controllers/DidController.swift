@@ -104,7 +104,7 @@ struct DidController: RouteCollection {
     let currentValue: String? =
       query.specificId ?? query.did.map({ String($0.trimmingPrefix("did:plc:")) })
     if case .redirect(let did) = result {
-      return .redirect(to: "/did/\(did)")
+      return .redirect(to: "/did/\(did)", redirectType: .permanent)
     }
     let count = try await Did.query(on: req.db).count()
     return .view(

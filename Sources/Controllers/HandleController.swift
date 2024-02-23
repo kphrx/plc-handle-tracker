@@ -92,7 +92,7 @@ struct HandleController: RouteCollection {
         .none
       }
     if case .redirect(let handle) = result {
-      return .redirect(to: "/handle/\(handle)")
+      return .redirect(to: "/handle/\(handle)", redirectType: .permanent)
     }
     let count = try await Handle.query(on: req.db).count()
     return .view(
