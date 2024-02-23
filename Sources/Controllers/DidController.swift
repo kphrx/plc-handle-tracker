@@ -95,9 +95,9 @@ struct DidController: RouteCollection {
     let query = try req.query.decode(DidIndexQuery.self)
     let result: DidSearchResult =
       if let did = query.did {
-        try await search(did: did, on: req.db)
+        try await self.search(did: did, on: req.db)
       } else if let specificId = query.specificId {
-        try await search(did: "did:plc:" + specificId, on: req.db)
+        try await self.search(did: "did:plc:" + specificId, on: req.db)
       } else {
         .none
       }
@@ -106,7 +106,7 @@ struct DidController: RouteCollection {
     if case .redirect(let did) = result {
       return .redirect(to: "/did/\(did)", redirectType: .permanent)
     }
-    let count = try await Did.query(on: req.db).count()
+    let count = try await req.didRepository.count()
     return .view(
       try await req.view.render(
         "did/index",
