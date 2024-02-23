@@ -3,7 +3,7 @@ import Vapor
 struct DidRepository {
   static let cacheKey = "count:did:plc"
 
-  private(set) var req: Request
+  let req: Request
 
   func count() async throws -> Int {
     if let cachedCount = try? await self.req.cache.get(Self.cacheKey, as: Int.self) {

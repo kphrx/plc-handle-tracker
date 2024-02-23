@@ -87,7 +87,7 @@ struct HandleController: RouteCollection {
     let query = try req.query.decode(HandleIndexQuery.self)
     let result: HandleSearchResult =
       if let handle = query.name {
-        try await self.search(handle: handle, on: req.db)
+        try await self.search(handle: handle, req: req)
       } else {
         .none
       }
@@ -104,24 +104,12 @@ struct HandleController: RouteCollection {
       status: result.status)
   }
 
-  private func search(handle: String, on database: Database) async throws -> HandleSearchResult {
-    if try await Handle.query(on: database).filter(\.$handle == handle).first() != nil {
-      return .redirect(handle)
+  private func search(handle: String, req: Request) async throws -> HandleSearchResult {
+    switch try await req.handleRepository.search(prefix: handle) {
+    case (true, _): .redirect(handle)
+    case (false, .none): .notFound(handle)
+    case (false, .some(let result)): .list(handle, result: result)
     }
-    if handle.count <= 3 {
-      return .notFound(handle)
-    }
-    let result: [Handle] =
-      if database is PostgresDatabase {
-        try await Handle.query(on: database).filter(\.$handle >= handle).filter(
-          \.$handle
-            <= .custom(
-              SQLFunction("CONCAT", args: SQLLiteral.string(handle), SQLLiteral.string("~")))
-        ).all()
-      } else {
-        try await Handle.query(on: database).filter(\.$handle =~ handle).all()
-      }
-    return .list(handle, result: result)
   }
 
   func show(req: Request) async throws -> View {
