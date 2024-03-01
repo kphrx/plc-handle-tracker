@@ -35,7 +35,7 @@ struct ImportAuditableLogJob: AsyncJob {
         prevOp = operation
         continue
       }
-      let operation = try await exportedOp.normalize(prev: prevOp, on: database)
+      let operation = try await Operation(exportedOp: exportedOp, prevOp: prevOp, on: database)
       try await operation.create(on: database)
       prevOp = operation
     }
