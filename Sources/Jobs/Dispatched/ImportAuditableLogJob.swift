@@ -13,9 +13,7 @@ struct ImportAuditableLogJob: AsyncJob {
     let app = context.application
     let response = try await app.client.get("https://plc.directory/\(payload)/log/audit")
     let ops = try response.content.decode([ExportedOperation].self)
-    try await app.db.transaction { transaction in
-      try await self.insert(ops: ops, on: transaction)
-    }
+    try await ops.insert(app: app)
     do {
       try await app.didRepository.unban(payload)
     } catch {
@@ -27,21 +25,6 @@ struct ImportAuditableLogJob: AsyncJob {
       ).update()
     } catch {
       app.logger.report(error: error)
-    }
-  }
-
-  private func insert(ops operations: [ExportedOperation], on database: Database) async throws {
-    var prevOp: Operation?
-    for exportedOp in operations {
-      if let operation = try await Operation.find(
-        .init(cid: exportedOp.cid, did: exportedOp.did), on: database)
-      {
-        prevOp = operation
-        continue
-      }
-      let operation = try await Operation(exportedOp: exportedOp, prevOp: prevOp, on: database)
-      try await operation.create(on: database)
-      prevOp = operation
     }
   }
 

@@ -95,8 +95,8 @@ extension Operation: TreeSort {
 }
 
 extension Array where Element == Operation {
-  func onlyUpdateHandle() throws -> [Operation] {
-    var result = [Operation]()
+  func onlyUpdateHandle() throws -> Self {
+    var result: Self = []
     var previous: UUID?
     for operation in self {
       let handleId = operation.handle?.id
@@ -110,7 +110,7 @@ extension Array where Element == Operation {
 }
 
 extension Operation {
-  convenience init(exportedOp: ExportedOperation, prevOp: Operation? = nil, on database: Database)
+  convenience init(exportedOp: ExportedOperation, prevOp: Operation? = nil, app: Application)
     async throws
   {
     try self.init(
@@ -119,8 +119,9 @@ extension Operation {
     switch exportedOp.operation {
     case .create(let createOp):
       _ = try await (
-        self.resolveDid(on: database), self.resolve(handle: createOp.handle, on: database),
-        self.resolve(serviceEndpoint: createOp.service, on: database)
+        self.resolveDid(on: app.didRepository),
+        self.resolve(handle: createOp.handle, on: app.db),
+        self.resolve(serviceEndpoint: createOp.service, on: app.db)
       )
     case .plcOperation(let plcOp):
       guard
@@ -130,44 +131,41 @@ extension Operation {
         throw OpParseError.notFoundAtprotoHandle
       }
       _ = try await (
-        self.resolve(handle: handleString, on: database),
-        self.resolve(serviceEndpoint: plcOp.services.atprotoPds.endpoint, on: database),
-        self.resolve(prevOp: prevOp, prevCid: plcOp.prev, on: database)
+        self.resolve(handle: handleString, on: app.db),
+        self.resolve(serviceEndpoint: plcOp.services.atprotoPds.endpoint, on: app.db),
+        self.resolve(prevOp: prevOp, prevCid: plcOp.prev, app: app)
       )
     case .plcTombstone(let tombstoneOp):
       if let prevOp {
         try self.resolve(prev: prevOp)
       } else {
-        try await self.resolve(prevCid: tombstoneOp.prev, on: database)
+        try await self.resolve(prev: tombstoneOp.prev, on: app.db)
       }
     }
   }
 
-  private func resolveDid(on database: Database) async throws {
-    guard let did = self.id?.did.id else {
+  private func resolveDid(on repository: DidRepository) async throws {
+    guard let did = self.id?.$did.id else {
       throw "not expected unset did"
     }
-    if try await Did.find(did, on: database) != nil {
-      return
-    }
-    do {
-      try await Did(did).create(on: database)
-    } catch let error as PostgresError where error.code == .uniqueViolation {
-      return
-    }
+    try await repository.createIfNoxExists(did)
   }
 
-  private func resolve(prevOp: Operation? = nil, prevCid: String? = nil, on database: Database)
+  private func resolve(prevOp: Operation? = nil, prevCid: String? = nil, app: Application)
     async throws
   {
     if let prevOp {
       try self.resolve(prev: prevOp)
       return
     }
-    guard let prevCid else {
-      try await self.resolveDid(on: database)
+    if let prevCid {
+      try await self.resolve(prev: prevCid, on: app.db)
       return
     }
+    try await self.resolveDid(on: app.didRepository)
+  }
+
+  private func resolve(prev prevCid: String, on database: Database) async throws {
     guard let did = self.id?.$did.id,
       let prevOp = try await Operation.find(.init(cid: prevCid, did: did), on: database)
     else {
@@ -177,7 +175,8 @@ extension Operation {
   }
 
   private func resolve(prev prevOp: Operation) throws {
-    self.$prev.id = try prevOp.requireID()
+    let prevId = try prevOp.requireID()
+    self.$prev.id = .init(cid: prevId.cid, did: prevId.$did.id)
   }
 
   private func resolve(handle handleName: String, on database: Database) async throws {

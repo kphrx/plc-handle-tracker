@@ -1,4 +1,5 @@
 import Fluent
+import FluentPostgresDriver
 import Redis
 import Vapor
 
@@ -31,7 +32,7 @@ struct DidRepository {
     }
     let count = try await Did.query(on: self.db).count()
     do {
-      try await self.cache.set(Self.countCacheKey, to: count, expiresIn: .minutes(5))
+      try await self.cache.set(Self.countCacheKey, to: count)
     } catch {
       self.logger.report(error: error)
     }
@@ -82,6 +83,24 @@ struct DidRepository {
     did.banned = false
     did.reason = nil
     try await did.update(on: self.db)
+  }
+
+  func createIfNoxExists(_ did: String) async throws {
+    if try await Did.find(did, on: self.db) != nil {
+      return
+    }
+    do {
+      try await Did(did).create(on: self.db)
+    } catch let error as PostgresError where error.code == .uniqueViolation {
+      return
+    }
+    do {
+      if try await self.redis.exists(key: RedisKey(Self.countCacheKey)) != 0 {
+        _ = try await self.redis.increment(RedisKey(Self.countCacheKey))
+      }
+    } catch {
+      self.logger.report(error: error)
+    }
   }
 }
 

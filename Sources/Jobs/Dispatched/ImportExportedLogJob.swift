@@ -14,24 +14,7 @@ struct ImportExportedLogJob: AsyncJob {
     if payload.ops.isEmpty {
       throw "Empty export"
     }
-    try await app.db.transaction { transaction in
-      try await self.insert(ops: payload.ops, on: transaction)
-    }
-  }
-
-  private func insert(ops operations: [ExportedOperation], on database: Database) async throws {
-    var prevOp: Operation?
-    for exportedOp in operations {
-      if let operation = try await Operation.find(
-        .init(cid: exportedOp.cid, did: exportedOp.did), on: database)
-      {
-        prevOp = operation
-        continue
-      }
-      let operation = try await Operation(exportedOp: exportedOp, prevOp: prevOp, on: database)
-      try await operation.create(on: database)
-      prevOp = operation
-    }
+    try await payload.ops.insert(app: app)
   }
 
   func error(_ context: QueueContext, _ error: Error, _ payload: Payload) async throws {

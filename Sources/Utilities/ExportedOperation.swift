@@ -188,3 +188,27 @@ extension ExportedOperation: TreeSort {
     }
   }
 }
+
+extension Array where Element == ExportedOperation {
+  func insert(app: Application) async throws {
+    var operations: [Operation] = []
+    var prevOp: Operation?
+    for exportedOp in self {
+      if let operation = try await Operation.find(
+        .init(cid: exportedOp.cid, did: exportedOp.did), on: app.db)
+      {
+        prevOp = operation
+        continue
+      }
+      let operation = try await Operation(exportedOp: exportedOp, prevOp: prevOp, app: app)
+      prevOp = operation
+      operations.append(operation)
+    }
+    let ops = operations
+    try await app.db.transaction { transaction in
+      for op in ops {
+        try await op.create(on: transaction)
+      }
+    }
+  }
+}
