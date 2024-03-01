@@ -5,33 +5,35 @@ protocol MergeSort {
   func compareValue() -> CompareValue
 }
 
-func mergeSort<T: MergeSort>(_ array: [T]) -> [T] {
-  guard array.count > 1 else { return array }
+extension Array where Element: MergeSort {
+  func mergeSort() -> Self {
+    guard self.count > 1 else { return self }
 
-  let middleIndex = array.count / 2
-  let leftArray = mergeSort(Array(array[..<middleIndex]))
-  let rightArray = mergeSort(Array(array[middleIndex...]))
+    let middleIndex = self.count / 2
+    let leftArray = Array(self[..<middleIndex]).mergeSort()
+    let rightArray = Array(self[middleIndex...]).mergeSort()
 
-  return merge(leftArray, rightArray)
-}
-
-func merge<T: MergeSort>(_ left: [T], _ right: [T]) -> [T] {
-  var leftIndex = 0
-  var rightIndex = 0
-  var mergedArray = [T]()
-
-  while leftIndex < left.count && rightIndex < right.count {
-    if left[leftIndex].compareValue() < right[rightIndex].compareValue() {
-      mergedArray.append(left[leftIndex])
-      leftIndex += 1
-    } else {
-      mergedArray.append(right[rightIndex])
-      rightIndex += 1
-    }
+    return Self.merge(leftArray, rightArray)
   }
 
-  mergedArray += Array(left[leftIndex...])
-  mergedArray += Array(right[rightIndex...])
+  static func merge(_ left: Self, _ right: Self) -> Self {
+    var leftIndex = 0
+    var rightIndex = 0
+    var mergedArray = Self()
 
-  return mergedArray
+    while leftIndex < left.count && rightIndex < right.count {
+      if left[leftIndex].compareValue() < right[rightIndex].compareValue() {
+        mergedArray.append(left[leftIndex])
+        leftIndex += 1
+      } else {
+        mergedArray.append(right[rightIndex])
+        rightIndex += 1
+      }
+    }
+
+    mergedArray += Array(left[leftIndex...])
+    mergedArray += Array(right[rightIndex...])
+
+    return mergedArray
+  }
 }

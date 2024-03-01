@@ -138,7 +138,7 @@ struct HandleController: RouteCollection {
     let handleId = try handle.requireID()
     var operations = [HandleShowContext.UpdateHandleOp]()
     var lastId: Operation.IDValue?
-    for operation in mergeSort(handle.operations) {
+    for operation in handle.operations.mergeSort() {
       let prev = lastId
       lastId = try operation.requireID()
       if prev != nil && prev == operation.$prev.id {

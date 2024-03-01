@@ -84,3 +84,18 @@ extension Operation: TreeSort {
     self.$prev.id
   }
 }
+
+extension Array where Element == Operation {
+  func onlyUpdateHandle() throws -> [Operation] {
+    var result = [Operation]()
+    var previous: UUID?
+    for operation in self {
+      let handleId = operation.handle?.id
+      if handleId != previous || previous == nil {
+        result.append(operation)
+      }
+      previous = handleId
+    }
+    return result
+  }
+}

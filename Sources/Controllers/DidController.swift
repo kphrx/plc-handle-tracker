@@ -116,20 +116,20 @@ struct DidController: RouteCollection {
   }
 
   private func search(did: String, on database: Database) async throws -> DidSearchResult {
-    if !validateDidPlaceholder(did) {
-      return .invalidFormat(did)
+    if !Did.validate(did: did) {
+      .invalidFormat(did)
+    } else if try await Did.find(did, on: database) != nil {
+      .redirect(did)
+    } else {
+      .notFound(did)
     }
-    if try await Did.find(did, on: database) != nil {
-      return .redirect(did)
-    }
-    return .notFound(did)
   }
 
   func show(req: Request) async throws -> View {
     guard let did = req.parameters.get("did") else {
       throw Abort(.internalServerError)
     }
-    if !validateDidPlaceholder(did) {
+    if !Did.validate(did: did) {
       throw Abort(.badRequest, reason: "Invalid DID format")
     }
     guard
@@ -150,10 +150,10 @@ struct DidController: RouteCollection {
     if didPlc.operations.isEmpty {
       throw Abort(.notFound, reason: "Operation not stored")
     }
-    guard let operations = try treeSort(didPlc.operations).first else {
+    guard let operations = try didPlc.operations.treeSort().first else {
       throw Abort(.internalServerError, reason: "Broken operation tree")
     }
-    let updateHandleOps = try onlyUpdateHandle(op: operations).map {
+    let updateHandleOps = try operations.onlyUpdateHandle().map {
       DidShowContext.UpdateHandleOp(op: $0)
     }
     return try await req.view.render(
