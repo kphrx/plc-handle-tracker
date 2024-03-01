@@ -120,7 +120,7 @@ extension Operation {
     case .create(let createOp):
       _ = try await (
         self.resolveDid(on: app.didRepository),
-        self.resolve(handle: createOp.handle, on: app.db),
+        self.resolve(handle: createOp.handle, on: app.handleRepository),
         self.resolve(serviceEndpoint: createOp.service, on: app.db)
       )
     case .plcOperation(let plcOp):
@@ -131,7 +131,7 @@ extension Operation {
         throw OpParseError.notFoundAtprotoHandle
       }
       _ = try await (
-        self.resolve(handle: handleString, on: app.db),
+        self.resolve(handle: handleString, on: app.handleRepository),
         self.resolve(serviceEndpoint: plcOp.services.atprotoPds.endpoint, on: app.db),
         self.resolve(prevOp: prevOp, prevCid: plcOp.prev, app: app)
       )
@@ -179,21 +179,13 @@ extension Operation {
     self.$prev.id = .init(cid: prevId.cid, did: prevId.$did.id)
   }
 
-  private func resolve(handle handleName: String, on database: Database) async throws {
-    if let handle = try await Handle.query(on: database).filter(\.$handle == handleName).first() {
+  private func resolve(handle handleName: String, on repository: HandleRepository) async throws {
+    do {
+      let handle = try await repository.createIfNoxExists(handleName)
       self.$handle.id = try handle.requireID()
-      return
-    }
-    guard let handle = try? Handle(handle: handleName) else {
+    } catch HandleNameError.invalidCharacter {
       throw OpParseError.invalidHandle
     }
-    do {
-      try await handle.create(on: database)
-    } catch let error as PostgresError where error.code == .uniqueViolation {
-      try await self.resolve(handle: handleName, on: database)
-      return
-    }
-    self.$handle.id = try handle.requireID()
   }
 
   private func resolve(serviceEndpoint endpoint: String, on database: Database) async throws {

@@ -28,7 +28,7 @@ final class Handle: Model, Content {
 
   init() {}
 
-  init(id: UUID? = nil, handle: String) throws {
+  init(id: UUID? = nil, _ handle: String) throws {
     self.id = id
     if !Self.validate(handle: handle) {
       throw HandleNameError.invalidCharacter

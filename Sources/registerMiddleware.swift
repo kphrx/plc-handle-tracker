@@ -10,4 +10,5 @@ func registerMiddleware(_ app: Application) {
 
   // database middleware
   app.databases.middleware.use(DidMiddleware(redis: app.redis, logger: app.logger), on: .psql)
+  app.databases.middleware.use(HandleMiddleware(redis: app.redis, logger: app.logger), on: .psql)
 }
