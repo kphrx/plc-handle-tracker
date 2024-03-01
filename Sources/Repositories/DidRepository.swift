@@ -86,6 +86,9 @@ struct DidRepository {
   }
 
   func createIfNoxExists(_ did: String) async throws {
+    if !Did.validate(did: did) {
+      throw "Invalid DID Placeholder"
+    }
     if try await Did.find(did, on: self.db) != nil {
       return
     }
@@ -93,13 +96,6 @@ struct DidRepository {
       try await Did(did).create(on: self.db)
     } catch let error as PostgresError where error.code == .uniqueViolation {
       return
-    }
-    do {
-      if try await self.redis.exists(key: RedisKey(Self.countCacheKey)) != 0 {
-        _ = try await self.redis.increment(RedisKey(Self.countCacheKey))
-      }
-    } catch {
-      self.logger.report(error: error)
     }
   }
 }
