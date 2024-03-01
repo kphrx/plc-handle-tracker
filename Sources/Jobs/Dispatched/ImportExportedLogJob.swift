@@ -36,25 +36,14 @@ struct ImportExportedLogJob: AsyncJob {
 
   func error(_ context: QueueContext, _ error: Error, _ payload: Payload) async throws {
     let app = context.application
-    if let err = error as? OpParseError {
-      let exportedOp = payload.ops.first!
-      let reason: BanReason =
-        switch err {
-        case .invalidHandle:
-          .invalidHandle
-        case .unknownPreviousOp:
-          .missingHistory
-        default:
-          .incompatibleAtproto
-        }
-      if let did = try? await Did.find(exportedOp.did, on: app.db) {
-        did.banned = true
-        did.reason = reason
-        try? await did.update(on: app.db)
-      } else {
-        try? await Did(exportedOp.did, banned: true, reason: reason).create(on: app.db)
-      }
-    }
     app.logger.report(error: error)
+    guard let err = error as? OpParseError, let op = payload.ops.first else {
+      return
+    }
+    do {
+      try await app.didRepository.ban(op.did, error: err)
+    } catch {
+      app.logger.report(error: error)
+    }
   }
 }

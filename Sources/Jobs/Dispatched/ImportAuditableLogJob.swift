@@ -16,14 +16,18 @@ struct ImportAuditableLogJob: AsyncJob {
     try await app.db.transaction { transaction in
       try await self.insert(ops: ops, on: transaction)
     }
-    if let did = try? await Did.find(payload, on: app.db) {
-      did.banned = false
-      did.reason = nil
-      try? await did.update(on: app.db)
+    do {
+      try await app.didRepository.unban(payload)
+    } catch {
+      app.logger.report(error: error)
     }
-    try? await PollingJobStatus.query(on: app.db).set(\.$status, to: .success).filter(
-      \.$status != .success
-    ).filter(\.$did == payload).update()
+    do {
+      try await PollingJobStatus.query(on: app.db).set(\.$status, to: .success).filter(
+        \.$did == payload
+      ).update()
+    } catch {
+      app.logger.report(error: error)
+    }
   }
 
   private func insert(ops operations: [ExportedOperation], on database: Database) async throws {
@@ -43,27 +47,21 @@ struct ImportAuditableLogJob: AsyncJob {
 
   func error(_ context: QueueContext, _ error: Error, _ payload: Payload) async throws {
     let app = context.application
-    if let err = error as? OpParseError {
-      let reason: BanReason =
-        switch err {
-        case .invalidHandle:
-          .invalidHandle
-        case .unknownPreviousOp:
-          .missingHistory
-        default:
-          .incompatibleAtproto
-        }
-      if let did = try? await Did.find(payload, on: app.db) {
-        did.banned = true
-        did.reason = reason
-        try? await did.update(on: app.db)
-      } else {
-        try? await Did(payload, banned: true, reason: reason).create(on: app.db)
-      }
-      try? await PollingJobStatus.query(on: app.db).set(\.$status, to: .banned).filter(
+    app.logger.report(error: error)
+    guard let err = error as? OpParseError else {
+      return
+    }
+    do {
+      try await app.didRepository.ban(payload, error: err)
+    } catch {
+      app.logger.report(error: error)
+    }
+    do {
+      try await PollingJobStatus.query(on: app.db).set(\.$status, to: .banned).filter(
         \.$status != .banned
       ).filter(\.$did == payload).update()
+    } catch {
+      app.logger.report(error: error)
     }
-    app.logger.report(error: error)
   }
 }
