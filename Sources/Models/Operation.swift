@@ -67,3 +67,20 @@ final class Operation: Model, Content {
     self.$pds.id = try pds?.requireID()
   }
 }
+
+extension Operation: MergeSort {
+  typealias CompareValue = Date
+  func compareValue() -> CompareValue {
+    self.createdAt
+  }
+}
+
+extension Operation: TreeSort {
+  typealias KeyType = Operation.IDValue
+  func cursor() throws -> KeyType {
+    try self.requireID()
+  }
+  func previousCursor() -> KeyType? {
+    self.$prev.id
+  }
+}

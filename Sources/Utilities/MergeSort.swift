@@ -1,12 +1,5 @@
 import Foundation
 
-extension Operation: MergeSort {
-  typealias CompareValue = Date
-  func compareValue() -> CompareValue {
-    self.createdAt
-  }
-}
-
 protocol MergeSort {
   associatedtype CompareValue: Comparable
   func compareValue() -> CompareValue

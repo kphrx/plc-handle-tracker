@@ -69,7 +69,7 @@ public func configure(_ app: Application) async throws {
   registerViews(app)
   registerMiddleware(app)
 
-  try routes(app)
+  try registerRoutes(app)
 
   try startJobQueuing(app)
 }

@@ -275,3 +275,17 @@ struct ExportedOperation: Content {
     return operation
   }
 }
+
+extension ExportedOperation: TreeSort {
+  typealias KeyType = String
+  func cursor() -> KeyType {
+    self.cid
+  }
+  func previousCursor() -> KeyType? {
+    switch self.operation {
+    case .create: nil
+    case .plcOperation(let plcOp): plcOp.prev
+    case .plcTombstone(let tombstoneOp): tombstoneOp.prev
+    }
+  }
+}
