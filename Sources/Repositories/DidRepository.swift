@@ -1,21 +1,25 @@
 import Fluent
+import Redis
 import Vapor
 
 struct DidRepository {
   static let countCacheKey = "count:did:plc"
-  static let searchCacheKeyPrefix = "search:did:plc"
+  static let existsCacheKey = "exists:did:plc"
 
   let logger: Logger
   let cache: Cache
+  let redis: RedisClient
   let db: Database
 
   init(app: Application) {
+    self.redis = app.redis
     self.logger = app.logger
     self.cache = app.cache
     self.db = app.db
   }
 
   init(req: Request) {
+    self.redis = req.redis
     self.logger = req.logger
     self.cache = req.cache
     self.db = req.db
@@ -35,14 +39,19 @@ struct DidRepository {
   }
 
   func search(did: String) async throws -> Bool {
-    let cacheKey = "\(Self.searchCacheKeyPrefix):\(String(did.trimmingPrefix("did:plc:")))"
+    let didSpecificId = String(did.trimmingPrefix("did:plc:"))
+    let cacheKey = "\(Self.existsCacheKey):\(didSpecificId)"
     if let cachedResult = try? await self.cache.get(cacheKey, as: Bool.self) {
       return cachedResult
     }
     let existsDid = try await Did.find(did, on: self.db) != nil
     do {
-      try await self.cache.set(
-        cacheKey, to: existsDid, expiresIn: existsDid ? nil : .minutes(10))
+      if existsDid {
+        try await self.cache.set(cacheKey, to: existsDid)
+        _ = try await self.redis.lpush(didSpecificId, into: RedisKey(Self.existsCacheKey))
+      } else {
+        try await self.cache.set(cacheKey, to: existsDid, expiresIn: .minutes(10))
+      }
     } catch {
       self.logger.report(error: error)
     }

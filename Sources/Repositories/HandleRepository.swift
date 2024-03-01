@@ -1,10 +1,12 @@
 import Fluent
 import FluentPostgresDriver
+import Redis
 import Vapor
 
 struct HandleRepository {
   static let countCacheKey = "count:handle"
-  static let searchCacheKeyPrefix = "search:handle"
+  static let existsCacheKey = "exists:handle"
+  static let searchCacheKey = "search:handle"
 
   let req: Request
 
@@ -32,15 +34,19 @@ struct HandleRepository {
   }
 
   private func exists(handle: String) async throws -> Bool {
-    let cacheKey = "\(Self.searchCacheKeyPrefix)-hit:\(handle)"
+    let cacheKey = "\(Self.existsCacheKey):\(handle)"
     if let cachedResult = try? await self.req.cache.get(cacheKey, as: Bool.self) {
       return cachedResult
     }
     let existsHandle =
       try await Handle.query(on: self.req.db).filter(\.$handle == handle).first() != nil
     do {
-      try await self.req.cache.set(
-        cacheKey, to: existsHandle, expiresIn: existsHandle ? nil : .minutes(10))
+      if existsHandle {
+        try await self.req.cache.set(cacheKey, to: existsHandle)
+        _ = try await self.req.redis.lpush(cacheKey, into: RedisKey(Self.existsCacheKey))
+      } else {
+        try await self.req.cache.set(cacheKey, to: existsHandle, expiresIn: .minutes(10))
+      }
     } catch {
       self.req.logger.report(error: error)
     }
@@ -48,7 +54,7 @@ struct HandleRepository {
   }
 
   private func getHandles(handle: String) async throws -> [Handle] {
-    let cacheKey = "\(Self.searchCacheKeyPrefix):\(handle)"
+    let cacheKey = "\(Self.searchCacheKey):\(handle)"
     if let cachedResult = try? await self.req.cache.get(cacheKey, as: [Handle].self) {
       return cachedResult
     }
@@ -66,6 +72,7 @@ struct HandleRepository {
       }
     do {
       try await self.req.cache.set(cacheKey, to: handles, expiresIn: .minutes(30))
+      _ = try await self.req.redis.lpush(handle, into: RedisKey(Self.searchCacheKey))
     } catch {
       self.req.logger.report(error: error)
     }
