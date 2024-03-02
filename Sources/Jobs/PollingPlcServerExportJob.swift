@@ -26,32 +26,46 @@ struct PollingPlcServerExportJob: AsyncJob {
     }
   }
 
+  private let jsonDecoder: ContentDecoder
+  private let textDecoder: ContentDecoder
+
+  init() throws {
+    self.jsonDecoder = try ContentConfiguration.global.requireDecoder(for: .json)
+    self.textDecoder = try ContentConfiguration.global.requireDecoder(for: .plainText)
+  }
+
   func dequeue(_ context: QueueContext, _ payload: Payload) async throws {
     let app = context.application
-    let exportedLog = try await getExportedLog(app, after: payload.after, count: payload.count)
-    for tree in try treeSort(exportedLog) {
+    let (exportedLog, lastCid, lastDate) = try await self.getExportedLog(
+      app, after: payload.after, count: payload.count)
+    for (_, ops) in exportedLog {
       try await app.queues.queue.dispatch(
         ImportExportedLogJob.self,
-        .init(ops: tree, historyId: payload.historyId)
+        .init(ops: ops, historyId: payload.historyId)
       )
     }
-    try await self.log(to: payload.historyId, lastOp: exportedLog.last, on: app.db)
+    try await self.log(to: payload.historyId, lastCid: lastCid, lastDate: lastDate, on: app.db)
   }
 
   private func getExportedLog(_ app: Application, after: Date?, count: UInt) async throws
-    -> [ExportedOperation]
+    -> ([String: [String]], String?, Date?)
   {
-    let jsonLines = try await self.fetchExportedLog(app.client, after: after, count: count)
-    let jsonDecoder = try ContentConfiguration.global.requireDecoder(for: .json)
-    var bannedDids: [String] = []
-    let ops = try jsonLines.compactMap { json in
-      do {
-        return try jsonDecoder.decode(
-          ExportedOperation.self, from: .init(string: String(json)), headers: [:])
-      } catch OpParseError.notUsedInAtproto(let did, _) {
-        bannedDids.append(did)
-        return nil
+    var (ops, bannedDids, nextCount, nextAfter) = (
+      [String: [String]](), Set<String>(), count, after
+    )
+    var last: String?
+    while true {
+      let (exportedLog, dids, lastCid, lastDate) = try await self.fetchExportedLog(
+        app.client, after: nextAfter, count: nextCount)
+      ops.merge(exportedLog, uniquingKeysWith: { $0 + $1 })
+      last = lastCid
+      nextAfter = lastDate
+      bannedDids.formUnion(dids)
+      if nextCount <= 1000 || exportedLog.count < 1000 {
+        break
       }
+      nextCount -= 1000
+      try await Task.sleep(nanoseconds: 1_000_000_000)
     }
     for did in bannedDids {
       if let did = try await Did.find(did, on: app.db) {
@@ -62,11 +76,11 @@ struct PollingPlcServerExportJob: AsyncJob {
       }
       try await Did(did, banned: true).create(on: app.db)
     }
-    return ops
+    return (ops, last, nextAfter)
   }
 
   private func fetchExportedLog(_ client: Client, after: Date?, count: UInt) async throws
-    -> [String.SubSequence]
+    -> ([String: [String]], [String], String?, Date?)
   {
     var url: URI = "https://plc.directory/export"
     url.query =
@@ -80,34 +94,45 @@ struct PollingPlcServerExportJob: AsyncJob {
         "count=\(count)"
       }
     let response = try await client.get(url)
-    let textDecoder = try ContentConfiguration.global.requireDecoder(for: .plainText)
-    let jsonLines = try response.content.decode(String.self, using: textDecoder).split(
-      separator: "\n")
-    if count <= 1000 || jsonLines.count < 1000 {
-      return jsonLines
+    var (exportedLog, bannedDids) = ([String: [String]](), [String]())
+    var lastDate: Date?
+    var lastCid: String?
+    for jsonLine in try response.content.decode(String.self, using: self.textDecoder).split(
+      separator: "\n"
+    ).map(String.init(_:)) {
+      do {
+        let exportedOp = try self.jsonDecoder.decode(
+          ExportedOperation.self, from: .init(string: jsonLine), headers: [:])
+        lastCid = exportedOp.cid
+        lastDate = exportedOp.createdAt
+        let did = exportedOp.did
+        if bannedDids.contains(did) {
+          continue
+        }
+        if exportedLog[did] == nil {
+          exportedLog[did] = []
+        }
+        exportedLog[did]?.append(jsonLine)
+      } catch OpParseError.notUsedInAtproto(let cid, let did, let createdAt) {
+        lastCid = cid
+        lastDate = createdAt
+        bannedDids.append(did)
+        exportedLog.removeValue(forKey: did)
+      }
     }
-    let jsonDecoder = try ContentConfiguration.global.requireDecoder(for: .json)
-    var nextAfter: Date?
-    do {
-      let lastOp = try jsonDecoder.decode(
-        ExportedOperation.self, from: .init(string: String(jsonLines.last!)), headers: [:])
-      nextAfter = lastOp.createdAt
-    } catch OpParseError.notUsedInAtproto(_, let createdAt) {
-      nextAfter = createdAt
-    }
-    let nextJsonLines = try await self.fetchExportedLog(
-      client, after: nextAfter, count: count - 1000)
-    return jsonLines + nextJsonLines
+    return (exportedLog, bannedDids, lastCid, lastDate)
   }
 
-  private func log(to historyId: UUID, lastOp: ExportedOperation?, on database: Database)
+  private func log(to historyId: UUID, lastCid: String?, lastDate: Date?, on database: Database)
     async throws
   {
-    guard let lastOp, let history = try await PollingHistory.find(historyId, on: database) else {
+    guard let lastCid, let lastDate,
+      let history = try await PollingHistory.find(historyId, on: database)
+    else {
       throw "Empty export"
     }
-    history.cid = lastOp.cid
-    history.createdAt = lastOp.createdAt
+    history.cid = lastCid
+    history.createdAt = lastDate
     return try await history.update(on: database)
   }
 

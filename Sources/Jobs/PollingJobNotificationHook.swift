@@ -1,14 +1,18 @@
 import Fluent
 import Foundation
 import Queues
+import Vapor
 
 struct PollingJobNotificationHook: AsyncJobEventDelegate {
   typealias Job = ImportExportedLogJob
 
   let database: Database
 
-  init(on database: Database) {
+  private let jsonDecoder: ContentDecoder
+
+  init(on database: Database) throws {
     self.database = database
+    self.jsonDecoder = try ContentConfiguration.global.requireDecoder(for: .json)
   }
 
   func dispatched(job: JobEventData) async throws {
@@ -16,9 +20,15 @@ struct PollingJobNotificationHook: AsyncJobEventDelegate {
       return
     }
     let payload = try Job.parsePayload(job.payload)
+    let did: String? =
+      if let op = payload.ops.first {
+        try self.jsonDecoder.decode(ExportedOperation.self, from: .init(string: op), headers: [:])
+          .did
+      } else {
+        nil
+      }
     try await PollingJobStatus(
-      id: jobId, historyId: payload.historyId, did: payload.ops.first.map { $0.did },
-      dispatchTimestamp: job.queuedAt
+      id: jobId, historyId: payload.historyId, did: did, dispatchTimestamp: job.queuedAt
     ).create(on: self.database)
   }
 
