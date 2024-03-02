@@ -8,10 +8,14 @@ enum HandleNameError: Error {
 final class Handle: Model, Content {
   static let schema = "handles"
 
-  static let validDomainNameCharacters = CharacterSet(charactersIn: "a"..."z")
+  static let invalidDomainNameCharacters = CharacterSet(charactersIn: "a"..."z")
     .union(.init(charactersIn: "0"..."9"))
     .union(.init(charactersIn: ".-"))
     .inverted
+
+  static func validate(handle: String) -> Bool {
+    return handle.rangeOfCharacter(from: Self.invalidDomainNameCharacters) == nil
+  }
 
   @ID(key: .id)
   var id: UUID?
@@ -26,7 +30,7 @@ final class Handle: Model, Content {
 
   init(id: UUID? = nil, handle: String) throws {
     self.id = id
-    if handle.rangeOfCharacter(from: Handle.validDomainNameCharacters) != nil {
+    if !Self.validate(handle: handle) {
       throw HandleNameError.invalidCharacter
     }
     self.handle = handle

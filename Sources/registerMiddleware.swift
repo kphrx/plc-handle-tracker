@@ -1,6 +1,6 @@
 import Vapor
 
-func middleware(_ app: Application) {
+func registerMiddleware(_ app: Application) {
   app.middleware = .init()
   app.middleware.use(RouteLoggingMiddleware())
   app.middleware.use(ErrorMiddleware(environment: app.environment))

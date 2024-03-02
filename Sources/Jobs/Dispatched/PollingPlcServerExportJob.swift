@@ -29,7 +29,7 @@ struct PollingPlcServerExportJob: AsyncJob {
   func dequeue(_ context: QueueContext, _ payload: Payload) async throws {
     let app = context.application
     let exportedLog = try await getExportedLog(app, after: payload.after, count: payload.count)
-    for tree in try treeSort(exportedLog) {
+    for tree in try exportedLog.treeSort() {
       try await app.queues.queue.dispatch(
         ImportExportedLogJob.self,
         .init(ops: tree, historyId: payload.historyId)

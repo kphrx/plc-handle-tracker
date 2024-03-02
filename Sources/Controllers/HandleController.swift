@@ -87,12 +87,12 @@ struct HandleController: RouteCollection {
     let query = try req.query.decode(HandleIndexQuery.self)
     let result: HandleSearchResult =
       if let handle = query.name {
-        try await search(handle: handle, on: req.db)
+        try await self.search(handle: handle, on: req.db)
       } else {
         .none
       }
     if case .redirect(let handle) = result {
-      return .redirect(to: "/handle/\(handle)")
+      return .redirect(to: "/handle/\(handle)", redirectType: .permanent)
     }
     let count = try await Handle.query(on: req.db).count()
     return .view(
@@ -138,7 +138,7 @@ struct HandleController: RouteCollection {
     let handleId = try handle.requireID()
     var operations = [HandleShowContext.UpdateHandleOp]()
     var lastId: Operation.IDValue?
-    for operation in mergeSort(handle.operations) {
+    for operation in handle.operations.mergeSort() {
       let prev = lastId
       lastId = try operation.requireID()
       if prev != nil && prev == operation.$prev.id {

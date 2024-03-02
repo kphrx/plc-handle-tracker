@@ -11,7 +11,7 @@ struct ImportDidCommand: AsyncCommand {
   }
 
   func run(using context: CommandContext, signature: Signature) async throws {
-    if !validateDidPlaceholder(signature.did) {
+    if !Did.validate(did: signature.did) {
       throw "Invalid DID Placeholder"
     }
     let app = context.application

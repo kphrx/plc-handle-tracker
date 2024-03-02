@@ -3,27 +3,20 @@ import Foundation
 import Queues
 import Vapor
 
-struct ImportAuditableLogJob: AsyncJob {
-  typealias Payload = String
+struct ImportExportedLogJob: AsyncJob {
+  struct Payload: Content {
+    let ops: [ExportedOperation]
+    let historyId: UUID
+  }
 
   func dequeue(_ context: QueueContext, _ payload: Payload) async throws {
-    if !validateDidPlaceholder(payload) {
-      throw "Invalid DID Placeholder"
-    }
     let app = context.application
-    let response = try await app.client.get("https://plc.directory/\(payload)/log/audit")
-    let ops = try response.content.decode([ExportedOperation].self)
+    if payload.ops.isEmpty {
+      throw "Empty export"
+    }
     try await app.db.transaction { transaction in
-      try await self.insert(ops: ops, on: transaction)
+      try await self.insert(ops: payload.ops, on: transaction)
     }
-    if let did = try? await Did.find(payload, on: app.db) {
-      did.banned = false
-      did.reason = nil
-      try? await did.update(on: app.db)
-    }
-    try? await PollingJobStatus.query(on: app.db).set(\.$status, to: .success).filter(
-      \.$status != .success
-    ).filter(\.$did == payload).update()
   }
 
   private func insert(ops operations: [ExportedOperation], on database: Database) async throws {
@@ -35,7 +28,7 @@ struct ImportAuditableLogJob: AsyncJob {
         prevOp = operation
         continue
       }
-      let operation = try await exportedOp.normalize(prev: prevOp, on: database)
+      let operation = try await Operation(exportedOp: exportedOp, prevOp: prevOp, on: database)
       try await operation.create(on: database)
       prevOp = operation
     }
@@ -44,6 +37,7 @@ struct ImportAuditableLogJob: AsyncJob {
   func error(_ context: QueueContext, _ error: Error, _ payload: Payload) async throws {
     let app = context.application
     if let err = error as? OpParseError {
+      let exportedOp = payload.ops.first!
       let reason: BanReason =
         switch err {
         case .invalidHandle:
@@ -53,16 +47,13 @@ struct ImportAuditableLogJob: AsyncJob {
         default:
           .incompatibleAtproto
         }
-      if let did = try? await Did.find(payload, on: app.db) {
+      if let did = try? await Did.find(exportedOp.did, on: app.db) {
         did.banned = true
         did.reason = reason
         try? await did.update(on: app.db)
       } else {
-        try? await Did(payload, banned: true, reason: reason).create(on: app.db)
+        try? await Did(exportedOp.did, banned: true, reason: reason).create(on: app.db)
       }
-      try? await PollingJobStatus.query(on: app.db).set(\.$status, to: .banned).filter(
-        \.$status != .banned
-      ).filter(\.$did == payload).update()
     }
     app.logger.report(error: error)
   }

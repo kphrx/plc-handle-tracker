@@ -7,7 +7,7 @@ struct IndexContext: BaseContext {
   let latestPolling: PollingHistory?
 }
 
-func routes(_ app: Application) throws {
+func registerRoutes(_ app: Application) throws {
   app.get { req -> View in
     try await req.view.render(
       "index",
