@@ -1,5 +1,6 @@
 import Fluent
 import FluentPostgresDriver
+import Queues
 import Redis
 import Vapor
 
@@ -8,21 +9,24 @@ struct DidRepository {
   static let existsCacheKey = "exists:did:plc"
 
   let logger: Logger
+  let queue: Queue
   let cache: Cache
   let redis: RedisClient
   let db: Database
 
   init(app: Application) {
-    self.redis = app.redis
     self.logger = app.logger
+    self.queue = app.queues.queue
     self.cache = app.cache
+    self.redis = app.redis
     self.db = app.db
   }
 
   init(req: Request) {
-    self.redis = req.redis
     self.logger = req.logger
+    self.queue = req.queue
     self.cache = req.cache
+    self.redis = req.redis
     self.db = req.db
   }
 
@@ -96,6 +100,29 @@ struct DidRepository {
       try await Did(did).create(on: self.db)
     } catch let error as PostgresError where error.code == .uniqueViolation {
       return
+    }
+  }
+
+  func findOrFetch(_ did: String, force: Bool = false) async throws -> Did? {
+    guard
+      let didPlc = try await Did.query(on: self.db).filter(\.$id == did).with(
+        \.$operations, { operation in operation.with(\.$handle).with(\.$pds) }
+      ).first()
+    else {
+      await self.dispatchFetchJob(did)
+      return nil
+    }
+    if force {
+      await self.dispatchFetchJob(did)
+    }
+    return didPlc
+  }
+
+  private func dispatchFetchJob(_ did: String) async {
+    do {
+      try await self.queue.dispatch(FetchDidJob.self, did)
+    } catch {
+      self.logger.report(error: error)
     }
   }
 }

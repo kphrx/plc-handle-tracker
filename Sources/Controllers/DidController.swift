@@ -132,16 +132,7 @@ struct DidController: RouteCollection {
     if !Did.validate(did: did) {
       throw Abort(.badRequest, reason: "Invalid DID format")
     }
-    guard
-      let didPlc = try await Did.query(on: req.db).filter(\.$id == did).with(
-        \.$operations, { operation in operation.with(\.$handle).with(\.$pds) }
-      ).first()
-    else {
-      do {
-        try await req.queue.dispatch(FetchDidJob.self, did)
-      } catch {
-        req.logger.report(error: error)
-      }
+    guard let didPlc = try await req.didRepository.findOrFetch(did) else {
       throw Abort(.notFound)
     }
     if didPlc.banned {
