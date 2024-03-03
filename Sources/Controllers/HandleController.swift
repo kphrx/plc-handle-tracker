@@ -7,9 +7,8 @@ struct HandleIndexQuery: Content {
 }
 
 enum HandleSearchResult {
-  case notFound(_: String)
+  case invalid(_: String)
   case list(_: String, result: [Handle])
-  case redirect(_: String)
   case none
 
   var list: [Handle] {
@@ -21,7 +20,7 @@ enum HandleSearchResult {
 
   var message: String? {
     switch self {
-    case .notFound(let handle): "Not found: @\(handle)"
+    case .invalid(let handle): "Invalid pattern: @\(handle)"
     case .list(let handle, let result) where result.isEmpty: "Not found: @\(handle)*"
     case .list(let handle, result: _): "Search: @\(handle)*"
     default: nil
@@ -30,8 +29,7 @@ enum HandleSearchResult {
 
   var status: HTTPResponseStatus {
     switch self {
-    case .notFound: .notFound
-    case .redirect: .movedPermanently
+    case .invalid: .badRequest
     case .list(_, let result) where result.isEmpty: .notFound
     case .list, .none: .ok
     }
@@ -85,18 +83,13 @@ struct HandleController: RouteCollection {
 
   func index(req: Request) async throws -> ViewOrRedirect {
     let query = try req.query.decode(HandleIndexQuery.self)
-    let result: HandleSearchResult =
-      if let handle = query.name {
-        try await self.search(handle: handle, req: req)
-      } else {
-        .none
-      }
-    if case .redirect(let handle) = result {
+    if let handle = query.name, try await req.handleRepository.exists(handle: handle) {
       return .redirect(to: "/handle/\(handle)", redirectType: .permanent)
     }
-    let count = try await req.handleRepository.count()
-    return .view(
-      try await req.view.render(
+    async let count = req.handleRepository.count()
+    async let result = self.search(handle: query.name, repo: req.handleRepository)
+    return try await .view(
+      req.view.render(
         "handle/index",
         HandleIndexContext(
           title: "Handles", route: req.route?.description ?? "", count: count,
@@ -104,11 +97,13 @@ struct HandleController: RouteCollection {
       status: result.status)
   }
 
-  private func search(handle: String, req: Request) async throws -> HandleSearchResult {
-    switch try await req.handleRepository.search(prefix: handle) {
-    case (true, _): .redirect(handle)
-    case (false, .none): .notFound(handle)
-    case (false, .some(let result)): .list(handle, result: result)
+  private func search(handle: String?, repo: HandleRepository) async throws -> HandleSearchResult {
+    guard let handle else {
+      return .none
+    }
+    return switch try await repo.search(prefix: handle) {
+    case .some(let result): .list(handle, result: result)
+    case .none: .invalid(handle)
     }
   }
 

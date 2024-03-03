@@ -40,17 +40,10 @@ struct HandleRepository {
     return count
   }
 
-  func search(prefix handle: String) async throws -> (Bool, [Handle]?) {
-    if handle.count <= 3 {
-      return (false, nil)
+  func exists(handle: String) async throws -> Bool {
+    if !Handle.validate(handle: handle) {
+      return false
     }
-    if try await self.exists(handle: handle) {
-      return (true, nil)
-    }
-    return (false, try await self.getHandles(handle: handle))
-  }
-
-  private func exists(handle: String) async throws -> Bool {
     let cacheKey = "\(Self.existsCacheKey):\(handle)"
     if let cachedResult = try? await self.cache.get(cacheKey, as: Bool.self) {
       return cachedResult
@@ -70,7 +63,10 @@ struct HandleRepository {
     return existsHandle
   }
 
-  private func getHandles(handle: String) async throws -> [Handle] {
+  func search(prefix handle: String) async throws -> [Handle]? {
+    if !Handle.validate(handle: handle) {
+      return nil
+    }
     let cacheKey = "\(Self.searchCacheKey):\(handle)"
     if let cachedResult = try? await self.cache.get(cacheKey, as: [Handle].self) {
       return cachedResult

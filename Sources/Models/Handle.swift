@@ -14,7 +14,8 @@ final class Handle: Model, Content {
     .inverted
 
   static func validate(handle: String) -> Bool {
-    return handle.rangeOfCharacter(from: Self.invalidDomainNameCharacters) == nil
+    return handle.count > 3
+      && handle.rangeOfCharacter(from: Self.invalidDomainNameCharacters) == nil
   }
 
   @ID(key: .id)
