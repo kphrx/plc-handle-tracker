@@ -13,7 +13,7 @@ final class Handle: Model, Content {
     .union(.init(charactersIn: ".-"))
     .inverted
 
-  static func validate(handle: String) -> Bool {
+  static func validate(_ handle: String) -> Bool {
     return handle.count > 3
       && handle.rangeOfCharacter(from: Self.invalidDomainNameCharacters) == nil
   }
@@ -31,7 +31,7 @@ final class Handle: Model, Content {
 
   init(id: UUID? = nil, _ handle: String) throws {
     self.id = id
-    if !Self.validate(handle: handle) {
+    if !Self.validate(handle) {
       throw HandleNameError.invalidCharacter
     }
     self.handle = handle

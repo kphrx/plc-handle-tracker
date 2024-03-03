@@ -1,5 +1,5 @@
 import NIOCore
-import Redis
+import RediStack
 
 extension RedisClient {
   func lpos<Value: RESPValueConvertible>(

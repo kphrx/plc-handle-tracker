@@ -40,52 +40,58 @@ struct HandleRepository {
     return count
   }
 
-  func exists(handle: String) async throws -> Bool {
-    if !Handle.validate(handle: handle) {
+  func exists(_ handleName: String) async throws -> Bool {
+    if !Handle.validate(handleName) {
       return false
     }
     let cacheKey = RedisKey(Self.notFoundCacheKey)
     do {
-      if try await self.redis.lpos(handle, in: cacheKey) != nil {
+      if try await self.redis.lpos(handleName, in: cacheKey) != nil {
         return false
       }
     } catch {
       self.logger.report(error: error)
     }
-    if try await Handle.query(on: self.db).filter(\.$handle == handle).first() != nil {
+    if try await Handle.query(on: self.db).filter(\.$handle == handleName).first() != nil {
       return true
     }
     do {
-      _ = try await self.redis.lpush(handle, into: cacheKey)
+      _ = try await self.redis.lpush(handleName, into: cacheKey)
     } catch {
       self.logger.report(error: error)
     }
     return false
   }
 
-  func search(prefix handle: String) async throws -> [Handle]? {
-    if !Handle.validate(handle: handle) {
+  func search(prefix handlePrefix: String) async throws -> [Handle]? {
+    if !Handle.validate(handlePrefix) {
       return nil
     }
-    let cacheKey = "\(Self.searchCacheKey):\(handle)"
-    if let cachedResult = try? await self.cache.get(cacheKey, as: [Handle].self) {
-      return cachedResult
+    let cacheKey = RedisKey("\(Self.searchCacheKey):\(handlePrefix)")
+    do {
+      if try await self.redis.exists(cacheKey) > 0 {
+        return try await self.redis.lrange(from: cacheKey, fromIndex: 0, asJSON: Handle.self)
+          .compactMap { $0 }
+      }
+    } catch {
+      self.logger.report(error: error)
     }
     let handles =
       if !Environment.getBool("DISABLE_NON_C_LOCALE_POSTGRES_SEARCH_OPTIMIZE")
         && self.db is PostgresDatabase
       {
-        try await Handle.query(on: self.db).filter(\.$handle >= handle).filter(
+        try await Handle.query(on: self.db).filter(\.$handle >= handlePrefix).filter(
           \.$handle
             <= .custom(
-              SQLFunction("CONCAT", args: SQLLiteral.string(handle), SQLLiteral.string("~")))
+              SQLFunction("CONCAT", args: SQLLiteral.string(handlePrefix), SQLLiteral.string("~")))
         ).all()
       } else {
-        try await Handle.query(on: self.db).filter(\.$handle =~ handle).all()
+        try await Handle.query(on: self.db).filter(\.$handle =~ handlePrefix).all()
       }
     do {
-      try await self.cache.set(cacheKey, to: handles, expiresIn: .minutes(30))
-      _ = try await self.redis.lpush(handle, into: RedisKey(Self.searchCacheKey))
+      _ = try await self.redis.lpush(jsonElements: handles, into: cacheKey)
+      _ = try await self.redis.expire(cacheKey, after: .minutes(30))
+      _ = try await self.redis.lpush(handlePrefix, into: RedisKey(Self.searchCacheKey))
     } catch {
       self.logger.report(error: error)
     }

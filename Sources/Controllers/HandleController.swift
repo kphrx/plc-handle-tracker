@@ -83,7 +83,7 @@ struct HandleController: RouteCollection {
 
   func index(req: Request) async throws -> ViewOrRedirect {
     let query = try req.query.decode(HandleIndexQuery.self)
-    if let handle = query.name, try await req.handleRepository.exists(handle: handle) {
+    if let handle = query.name, try await req.handleRepository.exists(handle) {
       return .redirect(to: "/handle/\(handle)", redirectType: .permanent)
     }
     async let count = req.handleRepository.count()
