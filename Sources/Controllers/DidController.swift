@@ -46,19 +46,11 @@ struct DidIndexContext: SearchContext {
 struct DidShowContext: BaseContext {
   struct UpdateHandleOp: Content {
     let handle: String?
-    let pds: String?
     let createdAt: Date
 
-    init?(op operation: Operation?) {
-      guard let operation else {
-        return nil
-      }
-      self.init(op: operation)
-    }
-
-    init(op operation: Operation) {
-      self.handle = operation.handle?.handle
-      self.pds = operation.pds?.endpoint
+    init(op operation: Operation, on db: Database) async throws {
+      let handle = try await operation.$handle.get(on: db)
+      self.handle = handle?.handle
       self.createdAt = operation.createdAt
     }
   }
@@ -67,12 +59,16 @@ struct DidShowContext: BaseContext {
     let handle: String
     let pds: String
 
-    init?(op operation: UpdateHandleOp?) {
-      guard let operation, let handle = operation.handle, let pds = operation.pds else {
+    init?(op operation: Operation?, on db: Database) async throws {
+      guard let operation else {
         return nil
       }
-      self.handle = handle
-      self.pds = pds
+      let (handle, pds) = try await (operation.$handle.get(on: db), operation.$pds.get(on: db))
+      guard let handleName = handle?.handle, let pdsEndpoint = pds?.endpoint else {
+        return nil
+      }
+      self.handle = handleName
+      self.pds = pdsEndpoint
     }
   }
 
@@ -144,13 +140,21 @@ struct DidController: RouteCollection {
     guard let operations = try didPlc.operations.treeSort().first else {
       throw Abort(.internalServerError, reason: "Broken operation tree")
     }
-    let updateHandleOps = try operations.onlyUpdateHandle().map {
-      DidShowContext.UpdateHandleOp(op: $0)
+    let updateHandleOps = try await withThrowingTaskGroup(
+      of: (Int, DidShowContext.UpdateHandleOp).self
+    ) {
+      let updateHandleOps = try operations.onlyUpdateHandle()
+      for (i, op) in updateHandleOps.enumerated() {
+        $0.addTask { try await (i, .init(op: op, on: req.db)) }
+      }
+      return try await $0.reduce(into: Array(repeating: nil, count: updateHandleOps.count)) {
+        $0[$1.0] = $1.1
+      }.compactMap { $0 }
     }
     return try await req.view.render(
       "did/show",
       DidShowContext(
-        title: try didPlc.requireID(), route: req.route?.description ?? "",
-        current: .init(op: .init(op: operations.last)), operations: updateHandleOps))
+        title: didPlc.requireID(), route: req.route?.description ?? "",
+        current: .init(op: operations.last, on: req.db), operations: updateHandleOps))
   }
 }

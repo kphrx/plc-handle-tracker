@@ -103,16 +103,9 @@ struct DidRepository {
     }
   }
 
-  func findOrFetch(_ did: String, force: Bool = false) async throws -> Did? {
-    guard
-      let didPlc = try await Did.query(on: self.db).filter(\.$id == did).with(
-        \.$operations, { operation in operation.with(\.$handle).with(\.$pds) }
-      ).first()
-    else {
-      await self.dispatchFetchJob(did)
-      return nil
-    }
-    if force {
+  func findOrFetch(_ did: String) async throws -> Did? {
+    let didPlc = try await Did.findWithOperations(did, on: self.db)
+    if didPlc == nil {
       await self.dispatchFetchJob(did)
     }
     return didPlc

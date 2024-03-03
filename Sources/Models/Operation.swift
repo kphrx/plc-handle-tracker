@@ -99,7 +99,7 @@ extension Array where Element == Operation {
     var result: Self = []
     var previous: UUID?
     for operation in self {
-      let handleId = operation.handle?.id
+      let handleId = operation.$handle.id
       if handleId != previous || previous == nil {
         result.append(operation)
       }
