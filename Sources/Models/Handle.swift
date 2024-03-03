@@ -8,6 +8,17 @@ enum HandleNameError: Error {
 final class Handle: Model, Content {
   static let schema = "handles"
 
+  static func findBy(handleName: String, withOp: Bool = false, on db: Database) async throws
+    -> Handle?
+  {
+    let query = Handle.query(on: db).filter(\.$handle == handleName)
+    return try await if withOp {
+      query.with(\.$operations).first()
+    } else {
+      query.first()
+    }
+  }
+
   static let invalidDomainNameCharacters = CharacterSet(charactersIn: "a"..."z")
     .union(.init(charactersIn: "0"..."9"))
     .union(.init(charactersIn: ".-"))

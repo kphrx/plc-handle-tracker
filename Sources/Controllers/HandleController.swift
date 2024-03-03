@@ -46,9 +46,8 @@ struct HandleIndexContext: SearchContext {
 }
 
 struct HandleShowContext: BaseContext {
-  struct UpdateHandleOp: Content {
+  struct HandleUsedRange: Content {
     let did: String
-    let pds: String
     let createdAt: Date
     let updatedAt: Date?
   }
@@ -56,20 +55,12 @@ struct HandleShowContext: BaseContext {
   struct Current: Content {
     let did: String
     let pds: String
-
-    init?(op operation: UpdateHandleOp) {
-      guard operation.updatedAt == nil else {
-        return nil
-      }
-      self.did = operation.did
-      self.pds = operation.pds
-    }
   }
 
   let title: String?
   let route: String
   let current: [Current]
-  let operations: [UpdateHandleOp]
+  let operations: [HandleUsedRange]
 }
 
 struct HandleController: RouteCollection {
@@ -111,47 +102,29 @@ struct HandleController: RouteCollection {
     guard let handleName = req.parameters.get("handle") else {
       throw Abort(.internalServerError)
     }
-    guard
-      let handle = try await Handle.query(on: req.db).filter(\.$handle == handleName).with(
-        \.$operations, { $0.with(\.$pds).with(\.$id.$did) }
-      ).first()
+    guard let handle = try await req.handleRepository.findWithOperations(handleName: handleName)
     else {
       throw Abort(.notFound)
     }
-    let handleId = try handle.requireID()
-    var operations = [HandleShowContext.UpdateHandleOp]()
-    var lastId: Operation.IDValue?
-    for operation in handle.operations.mergeSort() {
-      let prev = lastId
-      lastId = try operation.requireID()
-      if prev != nil && prev == operation.$prev.id {
+    var currents: [HandleShowContext.Current] = []
+    var handleUsedRange: [HandleShowContext.HandleUsedRange] = []
+    for ops in try handle.operations.treeSort() {
+      guard let firstOp = ops.first, let lastOp = ops.last else {
         continue
       }
-      let did = try operation.did.requireID()
-      guard
-        let untilOp = try await operation.did.$operations.query(on: req.db).filter(
-          \.$createdAt > operation.createdAt
-        ).filter(\.$handle.$id != handleId).first()
-      else {
-        let lastOp =
-          try await operation.did.$operations.query(on: req.db).with(\.$pds).sort(
-            \.$createdAt, .descending
-          ).first() ?? operation
-        operations.append(
-          .init(
-            did: did, pds: lastOp.pds!.endpoint, createdAt: operation.createdAt, updatedAt: nil))
+      let did = firstOp.$id.$did.id
+      guard let untilOp = try await lastOp.$nexts.get(on: req.db).first else {
+        try await currents.append(.init(did: did, pds: lastOp.$pds.get(on: req.db)!.endpoint))
+        handleUsedRange.append(.init(did: did, createdAt: firstOp.createdAt, updatedAt: nil))
         continue
       }
-      try await untilOp.$pds.load(on: req.db)
-      operations.append(
-        .init(
-          did: did, pds: untilOp.pds!.endpoint, createdAt: operation.createdAt,
-          updatedAt: untilOp.createdAt))
+      handleUsedRange.append(
+        .init(did: did, createdAt: firstOp.createdAt, updatedAt: untilOp.createdAt))
     }
     return try await req.view.render(
       "handle/show",
       HandleShowContext(
         title: "@\(handle.handle)", route: req.route?.description ?? "",
-        current: operations.compactMap { .init(op: $0) }, operations: operations))
+        current: currents, operations: handleUsedRange))
   }
 }

@@ -52,7 +52,7 @@ struct HandleRepository {
     } catch {
       self.logger.report(error: error)
     }
-    if try await Handle.query(on: self.db).filter(\.$handle == handleName).first() != nil {
+    if try await Handle.findBy(handleName: handleName, on: self.db) != nil {
       return true
     }
     do {
@@ -99,7 +99,7 @@ struct HandleRepository {
   }
 
   func createIfNoxExists(_ handleName: String) async throws -> Handle {
-    if let handle = try await Handle.query(on: self.db).filter(\.$handle == handleName).first() {
+    if let handle = try await Handle.findBy(handleName: handleName, on: self.db) {
       return handle
     }
     let handle = try Handle(handleName)
@@ -107,8 +107,12 @@ struct HandleRepository {
       try await handle.create(on: self.db)
       return handle
     } catch let error as PostgresError where error.code == .uniqueViolation {
-      return try await Handle.query(on: self.db).filter(\.$handle == handleName).first()!
+      return try await Handle.findBy(handleName: handleName, on: self.db)!
     }
+  }
+
+  func findWithOperations(handleName: String) async throws -> Handle? {
+    try await Handle.findBy(handleName: handleName, withOp: true, on: self.db)
   }
 }
 
