@@ -5,7 +5,7 @@ import Vapor
 
 struct HandleRepository {
   static let countCacheKey = "count:handle"
-  static let existsCacheKey = "exists:handle"
+  static let notFoundCacheKey = "not-found:handle"
   static let searchCacheKey = "search:handle"
 
   let logger: Logger
@@ -44,23 +44,23 @@ struct HandleRepository {
     if !Handle.validate(handle: handle) {
       return false
     }
-    let cacheKey = "\(Self.existsCacheKey):\(handle)"
-    if let cachedResult = try? await self.cache.get(cacheKey, as: Bool.self) {
-      return cachedResult
-    }
-    let existsHandle =
-      try await Handle.query(on: self.db).filter(\.$handle == handle).first() != nil
+    let cacheKey = RedisKey(Self.notFoundCacheKey)
     do {
-      if existsHandle {
-        try await self.cache.set(cacheKey, to: existsHandle)
-        _ = try await self.redis.lpush(cacheKey, into: RedisKey(Self.existsCacheKey))
-      } else {
-        try await self.cache.set(cacheKey, to: existsHandle, expiresIn: .minutes(10))
+      if try await self.redis.lpos(handle, in: cacheKey) != nil {
+        return false
       }
     } catch {
       self.logger.report(error: error)
     }
-    return existsHandle
+    if try await Handle.query(on: self.db).filter(\.$handle == handle).first() != nil {
+      return true
+    }
+    do {
+      _ = try await self.redis.lpush(handle, into: cacheKey)
+    } catch {
+      self.logger.report(error: error)
+    }
+    return false
   }
 
   func search(prefix handle: String) async throws -> [Handle]? {
