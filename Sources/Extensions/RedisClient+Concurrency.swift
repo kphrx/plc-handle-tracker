@@ -2,24 +2,6 @@ import NIOCore
 import RediStack
 
 extension RedisClient {
-  func lpush<Value: RESPValueConvertible>(_ elements: [Value], into: RedisKey) async throws -> Int {
-    try await self.lpush(elements, into: into).get()
-  }
-
-  func lpush<Value: RESPValueConvertible>(_ elements: Value..., into: RedisKey) async throws -> Int
-  {
-    try await self.lpush(elements, into: into)
-  }
-
-  func lpush<Value: Encodable>(jsonElements elements: [Value], into: RedisKey) async throws -> Int {
-    try await self.lpush(jsonElements: elements, into: into).get()
-  }
-
-  func lpush<Value: Encodable>(jsonElements elements: Value..., into: RedisKey) async throws -> Int
-  {
-    try await self.lpush(jsonElements: elements, into: into)
-  }
-
   func increment(_ key: RedisKey) async throws -> Int {
     try await self.increment(key).get()
   }
@@ -32,25 +14,57 @@ extension RedisClient {
     try await self.exists(keys)
   }
 
-  func lpos<Value: RESPValueConvertible>(
-    _ element: Value, in key: RedisKey, rank: Int? = nil, maxlen: Int? = nil
-  ) async throws -> Int? {
-    try await self.lpos(element, in: key, rank: rank, maxlen: maxlen).get()
-  }
-
-  func lpos<Value: RESPValueConvertible>(
-    _ element: Value, in key: RedisKey, rank: Int? = nil, count: Int, maxlen: Int? = nil
-  ) async throws -> [Int?] {
-    try await self.lpos(element, in: key, rank: rank, count: count, maxlen: maxlen).get()
-  }
-
-  func lrange<Value: Decodable>(from key: RedisKey, fromIndex index: Int, asJSON type: Value.Type)
-    async throws -> [Value?]
-  {
-    try await self.lrange(from: key, fromIndex: index, asJSON: type).get()
-  }
-
   func expire(_ key: RedisKey, after timeout: TimeAmount) async throws -> Bool {
     try await self.expire(key, after: timeout).get()
+  }
+
+  func sadd<Value: RESPValueConvertible>(_ elements: [Value], to key: RedisKey) async throws -> Int
+  {
+    try await self.sadd(elements, to: key).get()
+  }
+
+  func sadd<Value: RESPValueConvertible>(_ elements: Value..., to key: RedisKey) async throws -> Int
+  {
+    try await self.sadd(elements, to: key)
+  }
+
+  func sismember<Value: RESPValueConvertible>(_ element: Value, of key: RedisKey) async throws
+    -> Bool
+  {
+    try await self.sismember(element, of: key).get()
+  }
+
+  func zadd<Value: RESPValueConvertible>(
+    _ elements: [(element: Value, score: Double)], to key: RedisKey
+  ) async throws -> Int {
+    try await self.zadd(elements, to: key).get()
+  }
+
+  func zadd<Value: RESPValueConvertible>(
+    _ elements: (element: Value, score: Double)..., to key: RedisKey
+  ) async throws -> Int {
+    try await self.zadd(elements, to: key)
+  }
+
+  func zadd<Value: RESPValueConvertible>(
+    _ elements: [Value], defaultRank rank: Double = 0, to key: RedisKey
+  ) async throws -> Int {
+    try await self.zadd(elements.map { ($0, rank) }, to: key).get()
+  }
+
+  func zadd<Value: RESPValueConvertible>(
+    _ elements: Value..., defaultRank rank: Double = 0, to key: RedisKey
+  ) async throws -> Int {
+    try await self.zadd(elements, defaultRank: rank, to: key)
+  }
+
+  func zrange(from key: RedisKey, fromIndex index: Int) async throws -> [RESPValue] {
+    try await self.zrange(from: key, fromIndex: index).get()
+  }
+
+  func zrange<Value: RESPValueConvertible>(
+    from key: RedisKey, fromIndex index: Int, as type: Value.Type
+  ) async throws -> [Value?] {
+    try await self.zrange(from: key, fromIndex: index).map(type.init(fromRESP:))
   }
 }

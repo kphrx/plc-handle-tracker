@@ -8,10 +8,10 @@ struct HandleIndexQuery: Content {
 
 enum HandleSearchResult {
   case invalid(_: String)
-  case list(_: String, result: [Handle])
+  case list(_: String, result: [String])
   case none
 
-  var list: [Handle] {
+  var list: [String] {
     switch self {
     case .list(_, let result): result
     default: []
@@ -42,7 +42,7 @@ struct HandleIndexContext: SearchContext {
   let count: Int
   let currentValue: String?
   let message: String?
-  let result: [Handle]
+  let result: [String]
 }
 
 struct HandleShowContext: BaseContext {

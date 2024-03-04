@@ -46,7 +46,7 @@ struct HandleRepository {
     }
     let cacheKey = RedisKey(Self.notFoundCacheKey)
     do {
-      if try await self.redis.lpos(handleName, in: cacheKey) != nil {
+      if try await self.redis.sismember(handleName, of: cacheKey) {
         return false
       }
     } catch {
@@ -56,42 +56,47 @@ struct HandleRepository {
       return true
     }
     do {
-      _ = try await self.redis.lpush(handleName, into: cacheKey)
+      _ = try await self.redis.sadd(handleName, to: cacheKey)
     } catch {
       self.logger.report(error: error)
     }
     return false
   }
 
-  func search(prefix handlePrefix: String) async throws -> [Handle]? {
+  func search(prefix handlePrefix: String) async throws -> [String]? {
     if !Handle.validate(handlePrefix) {
       return nil
     }
     let cacheKey = RedisKey("\(Self.searchCacheKey):\(handlePrefix)")
     do {
       if try await self.redis.exists(cacheKey) > 0 {
-        return try await self.redis.lrange(from: cacheKey, fromIndex: 0, asJSON: Handle.self)
-          .compactMap { $0 }
+        return try await self.redis.zrange(from: cacheKey, fromIndex: 0, as: String.self)
+          .compactMap { if let h = $0, h != "." { h } else { nil } }
       }
     } catch {
       self.logger.report(error: error)
     }
-    let handles =
+    let query =
       if !Environment.getBool("DISABLE_NON_C_LOCALE_POSTGRES_SEARCH_OPTIMIZE")
         && self.db is PostgresDatabase
       {
-        try await Handle.query(on: self.db).filter(\.$handle >= handlePrefix).filter(
+        Handle.query(on: self.db).filter(\.$handle >= handlePrefix).filter(
           \.$handle
             <= .custom(
               SQLFunction("CONCAT", args: SQLLiteral.string(handlePrefix), SQLLiteral.string("~")))
-        ).all()
+        )
       } else {
-        try await Handle.query(on: self.db).filter(\.$handle =~ handlePrefix).all()
+        Handle.query(on: self.db).filter(\.$handle =~ handlePrefix)
       }
+    let handles = try await query.all().map { $0.handle }
     do {
-      _ = try await self.redis.lpush(jsonElements: handles, into: cacheKey)
+      if handles.count > 0 {
+        _ = try await self.redis.zadd(handles, to: cacheKey)
+      } else {
+        _ = try await self.redis.zadd(".", to: cacheKey)
+      }
       _ = try await self.redis.expire(cacheKey, after: .minutes(30))
-      _ = try await self.redis.lpush(handlePrefix, into: RedisKey(Self.searchCacheKey))
+      _ = try await self.redis.sadd(handlePrefix, to: RedisKey(Self.searchCacheKey))
     } catch {
       self.logger.report(error: error)
     }

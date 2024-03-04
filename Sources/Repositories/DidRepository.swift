@@ -6,7 +6,7 @@ import Vapor
 
 struct DidRepository {
   static let countCacheKey = "count:did:plc"
-  static let existsCacheKey = "exists:did:plc"
+  static let notFoundCacheKey = "not-found:did:plc"
 
   let logger: Logger
   let queue: Queue
@@ -45,22 +45,23 @@ struct DidRepository {
 
   func search(did: String) async throws -> Bool {
     let didSpecificId = String(did.trimmingPrefix("did:plc:"))
-    let cacheKey = "\(Self.existsCacheKey):\(didSpecificId)"
-    if let cachedResult = try? await self.cache.get(cacheKey, as: Bool.self) {
-      return cachedResult
-    }
-    let existsDid = try await Did.find(did, on: self.db) != nil
+    let cacheKey = RedisKey(Self.notFoundCacheKey)
     do {
-      if existsDid {
-        try await self.cache.set(cacheKey, to: existsDid)
-        _ = try await self.redis.lpush(didSpecificId, into: RedisKey(Self.existsCacheKey))
-      } else {
-        try await self.cache.set(cacheKey, to: existsDid, expiresIn: .minutes(10))
+      if try await self.redis.sismember(didSpecificId, of: cacheKey) {
+        return false
       }
     } catch {
       self.logger.report(error: error)
     }
-    return existsDid
+    if try await Did.find(did, on: self.db) != nil {
+      return true
+    }
+    do {
+      _ = try await self.redis.sadd(didSpecificId, to: cacheKey)
+    } catch {
+      self.logger.report(error: error)
+    }
+    return false
   }
 
   func ban(_ dids: String..., reason: BanReason = .incompatibleAtproto) async throws {
