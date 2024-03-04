@@ -14,6 +14,7 @@ struct HandleMiddleware: AsyncModelMiddleware {
       if try await self.redis.exists(countCacheKey) > 0 {
         _ = try await self.redis.increment(countCacheKey)
       }
+      _ = try await self.redis.srem(model.handle, from: RedisKey(HandleRepository.notFoundCacheKey))
     } catch {
       self.logger.report(error: error)
     }

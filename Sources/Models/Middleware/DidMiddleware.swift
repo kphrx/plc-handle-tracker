@@ -14,6 +14,9 @@ struct DidMiddleware: AsyncModelMiddleware {
       if try await self.redis.exists(countCacheKey) > 0 {
         _ = try await self.redis.increment(countCacheKey)
       }
+      _ = try await self.redis.srem(
+        String(model.requireID().trimmingPrefix("did:plc:")),
+        from: RedisKey(DidRepository.notFoundCacheKey))
     } catch {
       self.logger.report(error: error)
     }
