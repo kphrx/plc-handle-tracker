@@ -46,7 +46,7 @@ struct HandleIndexContext: SearchContext {
 }
 
 struct HandleShowContext: BaseContext {
-  struct HandleUsedRange: Content {
+  struct HandleUsagePeriod: Content {
     let did: String
     let createdAt: Date
     let updatedAt: Date?
@@ -60,7 +60,7 @@ struct HandleShowContext: BaseContext {
   let title: String?
   let route: String
   let current: [Current]
-  let operations: [HandleUsedRange]
+  let operations: [HandleUsagePeriod]
 }
 
 struct HandleController: RouteCollection {
@@ -106,25 +106,40 @@ struct HandleController: RouteCollection {
     else {
       throw Abort(.notFound)
     }
-    var currents: [HandleShowContext.Current] = []
-    var handleUsedRange: [HandleShowContext.HandleUsedRange] = []
-    for ops in try handle.operations.treeSort() {
-      guard let firstOp = ops.first, let lastOp = ops.last else {
-        continue
-      }
-      let did = firstOp.$id.$did.id
-      guard let untilOp = try await lastOp.$nexts.get(on: req.db).first else {
-        try await currents.append(.init(did: did, pds: lastOp.$pds.get(on: req.db)!.endpoint))
-        handleUsedRange.append(.init(did: did, createdAt: firstOp.createdAt, updatedAt: nil))
-        continue
-      }
-      handleUsedRange.append(
-        .init(did: did, createdAt: firstOp.createdAt, updatedAt: untilOp.createdAt))
-    }
+    let (handleUsagePeriod, currents):
+      ([HandleShowContext.HandleUsagePeriod], [HandleShowContext.Current]) =
+        try await withThrowingTaskGroup(
+          of: (Int, HandleShowContext.HandleUsagePeriod, HandleShowContext.Current?).self
+        ) {
+          let usagePeriod = try handle.operations.treeSort()
+          for (i, ops) in usagePeriod.enumerated() {
+            guard let firstOp = ops.first, let lastOp = ops.last else {
+              continue
+            }
+            let did = firstOp.$id.$did.id
+            $0.addTask {
+              guard let untilOp = try await lastOp.$nexts.get(on: req.db).first else {
+                return try await (
+                  i, .init(did: did, createdAt: firstOp.createdAt, updatedAt: nil),
+                  .init(did: did, pds: lastOp.$pds.get(on: req.db)!.endpoint)
+                )
+              }
+              return (
+                i, .init(did: did, createdAt: firstOp.createdAt, updatedAt: untilOp.createdAt), nil
+              )
+            }
+          }
+          return try await $0.reduce(into: Array(repeating: nil, count: usagePeriod.count)) {
+            $0[$1.0] = ($1.1, $1.2)
+          }.compactMap { $0 }.reduce(into: ([], [])) {
+            if let current = $1.1 { $0.1.append(current) }
+            $0.0.append($1.0)
+          }
+        }
     return try await req.view.render(
       "handle/show",
       HandleShowContext(
         title: "@\(handle.handle)", route: req.route?.description ?? "",
-        current: currents, operations: handleUsedRange))
+        current: currents, operations: handleUsagePeriod))
   }
 }
