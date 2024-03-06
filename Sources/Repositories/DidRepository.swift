@@ -128,8 +128,14 @@ struct DidRepository {
   }
 
   private func dispatchFetchJob(_ did: String) async {
+    let cacheKey = "last-fetch:\(did)"
     do {
+      if let lastFetch = try await self.cache.get(cacheKey, as: Date.self) {
+        self.logger.debug("\(did) already fetch in \(lastFetch)")
+        return
+      }
       try await self.queue.dispatch(FetchDidJob.self, did)
+      try await self.cache.set(cacheKey, to: Date(), expiresIn: .days(1))
     } catch {
       self.logger.report(error: error)
     }
