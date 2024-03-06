@@ -117,7 +117,23 @@ struct HandleRepository {
   }
 
   func findWithOperations(handleName: String) async throws -> Handle? {
-    try await Handle.findBy(handleName: handleName, withOp: true, on: self.db)
+    let cacheKey = RedisKey(Self.notFoundCacheKey)
+    do {
+      if try await self.redis.sismember(handleName, of: cacheKey) {
+        return nil
+      }
+    } catch {
+      self.logger.report(error: error)
+    }
+    if let handle = try await Handle.findBy(handleName: handleName, withOp: true, on: self.db) {
+      return handle
+    }
+    do {
+      _ = try await self.redis.sadd(handleName, to: cacheKey)
+    } catch {
+      self.logger.report(error: error)
+    }
+    return nil
   }
 }
 

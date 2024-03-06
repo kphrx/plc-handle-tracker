@@ -105,11 +105,26 @@ struct DidRepository {
   }
 
   func findOrFetch(_ did: String) async throws -> Did? {
-    let didPlc = try await Did.findWithOperations(did, on: self.db)
-    if didPlc == nil {
-      await self.dispatchFetchJob(did)
+    let cacheKey = RedisKey(Self.notFoundCacheKey)
+    let didSpecificId = String(did.trimmingPrefix("did:plc:"))
+    do {
+      if try await self.redis.sismember(didSpecificId, of: cacheKey) {
+        await self.dispatchFetchJob(did)
+        return nil
+      }
+    } catch {
+      self.logger.report(error: error)
     }
-    return didPlc
+    if let didPlc = try await Did.findWithOperations(did, on: self.db) {
+      return didPlc
+    }
+    do {
+      _ = try await self.redis.sadd(didSpecificId, to: cacheKey)
+    } catch {
+      self.logger.report(error: error)
+    }
+    await self.dispatchFetchJob(did)
+    return nil
   }
 
   private func dispatchFetchJob(_ did: String) async {
