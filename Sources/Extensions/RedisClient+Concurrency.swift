@@ -34,6 +34,12 @@ extension RedisClient {
     try await self.sismember(element, of: key).get()
   }
 
+  func smembers<Value: RESPValueConvertible>(of key: RedisKey, as type: Value.Type) async throws
+    -> [Value?]
+  {
+    try await self.smembers(of: key, as: type).get()
+  }
+
   func srem<Value: RESPValueConvertible>(_ elements: [Value], from key: RedisKey) async throws
     -> Int
   {
