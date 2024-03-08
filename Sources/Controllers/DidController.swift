@@ -46,19 +46,11 @@ struct DidIndexContext: SearchContext {
 struct DidShowContext: BaseContext {
   struct UpdateHandleOp: Content {
     let handle: String?
-    let pds: String?
     let createdAt: Date
 
-    init?(op operation: Operation?) {
-      guard let operation else {
-        return nil
-      }
-      self.init(op: operation)
-    }
-
-    init(op operation: Operation) {
-      self.handle = operation.handle?.handle
-      self.pds = operation.pds?.endpoint
+    init(op operation: Operation, on db: Database) async throws {
+      let handle = try await operation.$handle.get(on: db)
+      self.handle = handle?.handle
       self.createdAt = operation.createdAt
     }
   }
@@ -67,12 +59,16 @@ struct DidShowContext: BaseContext {
     let handle: String
     let pds: String
 
-    init?(op operation: UpdateHandleOp?) {
-      guard let operation, let handle = operation.handle, let pds = operation.pds else {
+    init?(op operation: Operation?, on db: Database) async throws {
+      guard let operation else {
         return nil
       }
-      self.handle = handle
-      self.pds = pds
+      let (handle, pds) = try await (operation.$handle.get(on: db), operation.$pds.get(on: db))
+      guard let handleName = handle?.handle, let pdsEndpoint = pds?.endpoint else {
+        return nil
+      }
+      self.handle = handleName
+      self.pds = pdsEndpoint
     }
   }
 
@@ -93,32 +89,32 @@ struct DidController: RouteCollection {
 
   func index(req: Request) async throws -> ViewOrRedirect {
     let query = try req.query.decode(DidIndexQuery.self)
+    let (specificId, did) =
+      query.specificId.map({ ($0, "did:plc:" + $0) }) ?? query.did.map({
+        (String($0.trimmingPrefix("did:plc:")), $0)
+      }) ?? (nil, nil)
     let result: DidSearchResult =
-      if let did = query.did {
-        try await search(did: did, on: req.db)
-      } else if let specificId = query.specificId {
-        try await search(did: "did:plc:" + specificId, on: req.db)
+      if let did {
+        try await self.search(did: did, req: req)
       } else {
         .none
       }
-    let currentValue: String? =
-      query.specificId ?? query.did.map({ String($0.trimmingPrefix("did:plc:")) })
     if case .redirect(let did) = result {
       return .redirect(to: "/did/\(did)", redirectType: .permanent)
     }
-    let count = try await Did.query(on: req.db).count()
+    let count = try await req.didRepository.count()
     return .view(
       try await req.view.render(
         "did/index",
         DidIndexContext(
           title: "DID Placeholders", route: req.route?.description ?? "", count: count,
-          currentValue: currentValue, message: result.message)), status: result.status)
+          currentValue: specificId, message: result.message)), status: result.status)
   }
 
-  private func search(did: String, on database: Database) async throws -> DidSearchResult {
+  private func search(did: String, req: Request) async throws -> DidSearchResult {
     if !Did.validate(did: did) {
       .invalidFormat(did)
-    } else if try await Did.find(did, on: database) != nil {
+    } else if try await req.didRepository.search(did: did) {
       .redirect(did)
     } else {
       .notFound(did)
@@ -132,16 +128,7 @@ struct DidController: RouteCollection {
     if !Did.validate(did: did) {
       throw Abort(.badRequest, reason: "Invalid DID format")
     }
-    guard
-      let didPlc = try await Did.query(on: req.db).filter(\.$id == did).with(
-        \.$operations, { operation in operation.with(\.$handle).with(\.$pds) }
-      ).first()
-    else {
-      do {
-        try await req.queue.dispatch(FetchDidJob.self, did)
-      } catch {
-        req.logger.report(error: error)
-      }
+    guard let didPlc = try await req.didRepository.findOrFetch(did) else {
       throw Abort(.notFound)
     }
     if didPlc.banned {
@@ -153,13 +140,21 @@ struct DidController: RouteCollection {
     guard let operations = try didPlc.operations.treeSort().first else {
       throw Abort(.internalServerError, reason: "Broken operation tree")
     }
-    let updateHandleOps = try operations.onlyUpdateHandle().map {
-      DidShowContext.UpdateHandleOp(op: $0)
+    let updateHandleOps = try await withThrowingTaskGroup(
+      of: (Int, DidShowContext.UpdateHandleOp).self
+    ) {
+      let updateHandleOps = try operations.onlyUpdateHandle()
+      for (i, op) in updateHandleOps.enumerated() {
+        $0.addTask { try await (i, .init(op: op, on: req.db)) }
+      }
+      return try await $0.reduce(into: Array(repeating: nil, count: updateHandleOps.count)) {
+        $0[$1.0] = $1.1
+      }.compactMap { $0 }
     }
     return try await req.view.render(
       "did/show",
       DidShowContext(
-        title: try didPlc.requireID(), route: req.route?.description ?? "",
-        current: .init(op: .init(op: operations.last)), operations: updateHandleOps))
+        title: didPlc.requireID(), route: req.route?.description ?? "",
+        current: .init(op: operations.last, on: req.db), operations: updateHandleOps))
   }
 }

@@ -10,6 +10,14 @@ enum BanReason: String, Codable {
 final class Did: Model, Content {
   static let schema = "dids"
 
+  static func findWithOperations(_ did: Did.IDValue?, on db: Database) async throws -> Did? {
+    if let did {
+      try await Did.query(on: db).filter(\.$id == did).with(\.$operations).first()
+    } else {
+      nil
+    }
+  }
+
   @ID(custom: "did", generatedBy: .user)
   var id: String?
 

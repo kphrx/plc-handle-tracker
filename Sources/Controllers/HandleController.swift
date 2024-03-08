@@ -7,12 +7,11 @@ struct HandleIndexQuery: Content {
 }
 
 enum HandleSearchResult {
-  case notFound(_: String)
-  case list(_: String, result: [Handle])
-  case redirect(_: String)
+  case invalid(_: String)
+  case list(_: String, result: [String])
   case none
 
-  var list: [Handle] {
+  var list: [String] {
     switch self {
     case .list(_, let result): result
     default: []
@@ -21,7 +20,7 @@ enum HandleSearchResult {
 
   var message: String? {
     switch self {
-    case .notFound(let handle): "Not found: @\(handle)"
+    case .invalid(let handle): "Invalid pattern: @\(handle)"
     case .list(let handle, let result) where result.isEmpty: "Not found: @\(handle)*"
     case .list(let handle, result: _): "Search: @\(handle)*"
     default: nil
@@ -30,8 +29,7 @@ enum HandleSearchResult {
 
   var status: HTTPResponseStatus {
     switch self {
-    case .notFound: .notFound
-    case .redirect: .movedPermanently
+    case .invalid: .badRequest
     case .list(_, let result) where result.isEmpty: .notFound
     case .list, .none: .ok
     }
@@ -44,13 +42,12 @@ struct HandleIndexContext: SearchContext {
   let count: Int
   let currentValue: String?
   let message: String?
-  let result: [Handle]
+  let result: [String]
 }
 
 struct HandleShowContext: BaseContext {
-  struct UpdateHandleOp: Content {
+  struct HandleUsagePeriod: Content {
     let did: String
-    let pds: String
     let createdAt: Date
     let updatedAt: Date?
   }
@@ -58,20 +55,12 @@ struct HandleShowContext: BaseContext {
   struct Current: Content {
     let did: String
     let pds: String
-
-    init?(op operation: UpdateHandleOp) {
-      guard operation.updatedAt == nil else {
-        return nil
-      }
-      self.did = operation.did
-      self.pds = operation.pds
-    }
   }
 
   let title: String?
   let route: String
   let current: [Current]
-  let operations: [UpdateHandleOp]
+  let operations: [HandleUsagePeriod]
 }
 
 struct HandleController: RouteCollection {
@@ -85,18 +74,13 @@ struct HandleController: RouteCollection {
 
   func index(req: Request) async throws -> ViewOrRedirect {
     let query = try req.query.decode(HandleIndexQuery.self)
-    let result: HandleSearchResult =
-      if let handle = query.name {
-        try await self.search(handle: handle, on: req.db)
-      } else {
-        .none
-      }
-    if case .redirect(let handle) = result {
+    if let handle = query.name, try await req.handleRepository.exists(handle) {
       return .redirect(to: "/handle/\(handle)", redirectType: .permanent)
     }
-    let count = try await Handle.query(on: req.db).count()
-    return .view(
-      try await req.view.render(
+    async let count = req.handleRepository.count()
+    async let result = self.search(handle: query.name, repo: req.handleRepository)
+    return try await .view(
+      req.view.render(
         "handle/index",
         HandleIndexContext(
           title: "Handles", route: req.route?.description ?? "", count: count,
@@ -104,71 +88,58 @@ struct HandleController: RouteCollection {
       status: result.status)
   }
 
-  private func search(handle: String, on database: Database) async throws -> HandleSearchResult {
-    if try await Handle.query(on: database).filter(\.$handle == handle).first() != nil {
-      return .redirect(handle)
+  private func search(handle: String?, repo: HandleRepository) async throws -> HandleSearchResult {
+    guard let handle else {
+      return .none
     }
-    if handle.count <= 3 {
-      return .notFound(handle)
+    return switch try await repo.search(prefix: handle) {
+    case .some(let result): .list(handle, result: result)
+    case .none: .invalid(handle)
     }
-    let result: [Handle] =
-      if database is PostgresDatabase {
-        try await Handle.query(on: database).filter(\.$handle >= handle).filter(
-          \.$handle
-            <= .custom(
-              SQLFunction("CONCAT", args: SQLLiteral.string(handle), SQLLiteral.string("~")))
-        ).all()
-      } else {
-        try await Handle.query(on: database).filter(\.$handle =~ handle).all()
-      }
-    return .list(handle, result: result)
   }
 
   func show(req: Request) async throws -> View {
     guard let handleName = req.parameters.get("handle") else {
       throw Abort(.internalServerError)
     }
-    guard
-      let handle = try await Handle.query(on: req.db).filter(\.$handle == handleName).with(
-        \.$operations, { $0.with(\.$pds).with(\.$id.$did) }
-      ).first()
+    guard let handle = try await req.handleRepository.findWithOperations(handleName: handleName)
     else {
       throw Abort(.notFound)
     }
-    let handleId = try handle.requireID()
-    var operations = [HandleShowContext.UpdateHandleOp]()
-    var lastId: Operation.IDValue?
-    for operation in handle.operations.mergeSort() {
-      let prev = lastId
-      lastId = try operation.requireID()
-      if prev != nil && prev == operation.$prev.id {
-        continue
-      }
-      let did = try operation.did.requireID()
-      guard
-        let untilOp = try await operation.did.$operations.query(on: req.db).filter(
-          \.$createdAt > operation.createdAt
-        ).filter(\.$handle.$id != handleId).first()
-      else {
-        let lastOp =
-          try await operation.did.$operations.query(on: req.db).with(\.$pds).sort(
-            \.$createdAt, .descending
-          ).first() ?? operation
-        operations.append(
-          .init(
-            did: did, pds: lastOp.pds!.endpoint, createdAt: operation.createdAt, updatedAt: nil))
-        continue
-      }
-      try await untilOp.$pds.load(on: req.db)
-      operations.append(
-        .init(
-          did: did, pds: untilOp.pds!.endpoint, createdAt: operation.createdAt,
-          updatedAt: untilOp.createdAt))
-    }
+    let (handleUsagePeriod, currents):
+      ([HandleShowContext.HandleUsagePeriod], [HandleShowContext.Current]) =
+        try await withThrowingTaskGroup(
+          of: (Int, HandleShowContext.HandleUsagePeriod, HandleShowContext.Current?).self
+        ) {
+          let usagePeriod = try handle.operations.treeSort()
+          for (i, ops) in usagePeriod.enumerated() {
+            guard let firstOp = ops.first, let lastOp = ops.last else {
+              continue
+            }
+            let did = firstOp.$id.$did.id
+            $0.addTask {
+              guard let untilOp = try await lastOp.$nexts.get(on: req.db).first else {
+                return try await (
+                  i, .init(did: did, createdAt: firstOp.createdAt, updatedAt: nil),
+                  .init(did: did, pds: lastOp.$pds.get(on: req.db)!.endpoint)
+                )
+              }
+              return (
+                i, .init(did: did, createdAt: firstOp.createdAt, updatedAt: untilOp.createdAt), nil
+              )
+            }
+          }
+          return try await $0.reduce(into: Array(repeating: nil, count: usagePeriod.count)) {
+            $0[$1.0] = ($1.1, $1.2)
+          }.compactMap { $0 }.reduce(into: ([], [])) {
+            if let current = $1.1 { $0.1.append(current) }
+            $0.0.append($1.0)
+          }
+        }
     return try await req.view.render(
       "handle/show",
       HandleShowContext(
         title: "@\(handle.handle)", route: req.route?.description ?? "",
-        current: operations.compactMap { .init(op: $0) }, operations: operations))
+        current: currents, operations: handleUsagePeriod))
   }
 }

@@ -13,57 +13,38 @@ struct ImportAuditableLogJob: AsyncJob {
     let app = context.application
     let response = try await app.client.get("https://plc.directory/\(payload)/log/audit")
     let ops = try response.content.decode([ExportedOperation].self)
-    try await app.db.transaction { transaction in
-      try await self.insert(ops: ops, on: transaction)
+    try await ops.insert(app: app)
+    do {
+      try await app.didRepository.unban(payload)
+    } catch {
+      app.logger.report(error: error)
     }
-    if let did = try? await Did.find(payload, on: app.db) {
-      did.banned = false
-      did.reason = nil
-      try? await did.update(on: app.db)
-    }
-    try? await PollingJobStatus.query(on: app.db).set(\.$status, to: .success).filter(
-      \.$status != .success
-    ).filter(\.$did == payload).update()
-  }
-
-  private func insert(ops operations: [ExportedOperation], on database: Database) async throws {
-    var prevOp: Operation?
-    for exportedOp in operations {
-      if let operation = try await Operation.find(
-        .init(cid: exportedOp.cid, did: exportedOp.did), on: database)
-      {
-        prevOp = operation
-        continue
-      }
-      let operation = try await Operation(exportedOp: exportedOp, prevOp: prevOp, on: database)
-      try await operation.create(on: database)
-      prevOp = operation
+    do {
+      try await PollingJobStatus.query(on: app.db).set(\.$status, to: .success).filter(
+        \.$did == payload
+      ).update()
+    } catch {
+      app.logger.report(error: error)
     }
   }
 
   func error(_ context: QueueContext, _ error: Error, _ payload: Payload) async throws {
     let app = context.application
-    if let err = error as? OpParseError {
-      let reason: BanReason =
-        switch err {
-        case .invalidHandle:
-          .invalidHandle
-        case .unknownPreviousOp:
-          .missingHistory
-        default:
-          .incompatibleAtproto
-        }
-      if let did = try? await Did.find(payload, on: app.db) {
-        did.banned = true
-        did.reason = reason
-        try? await did.update(on: app.db)
-      } else {
-        try? await Did(payload, banned: true, reason: reason).create(on: app.db)
-      }
-      try? await PollingJobStatus.query(on: app.db).set(\.$status, to: .banned).filter(
+    app.logger.report(error: error)
+    guard let err = error as? OpParseError else {
+      return
+    }
+    do {
+      try await app.didRepository.ban(payload, error: err)
+    } catch {
+      app.logger.report(error: error)
+    }
+    do {
+      try await PollingJobStatus.query(on: app.db).set(\.$status, to: .banned).filter(
         \.$status != .banned
       ).filter(\.$did == payload).update()
+    } catch {
+      app.logger.report(error: error)
     }
-    app.logger.report(error: error)
   }
 }

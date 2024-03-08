@@ -53,15 +53,7 @@ struct PollingPlcServerExportJob: AsyncJob {
         return nil
       }
     }
-    for did in bannedDids {
-      if let did = try await Did.find(did, on: app.db) {
-        did.banned = true
-        did.reason = .incompatibleAtproto
-        try? await did.update(on: app.db)
-        continue
-      }
-      try await Did(did, banned: true).create(on: app.db)
-    }
+    try await app.didRepository.ban(dids: bannedDids)
     return ops
   }
 

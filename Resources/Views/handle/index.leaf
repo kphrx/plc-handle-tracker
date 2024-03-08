@@ -20,7 +20,7 @@
     #if(count(result) != 0):
     <ul>
       #for(handle in result):
-      <li><a href="/handle/#(handle.handle)">@#(handle.handle)</a></li>
+      <li><a href="/handle/#(handle)">@#(handle)</a></li>
       #endfor
     </ul>
     #endif

@@ -8,37 +8,27 @@ protocol TreeSort {
 
 extension Array where Element: TreeSort {
   func treeSort() throws -> [Self] {
+    let keys: [Element.KeyType] = try self.map { try $0.cursor() }
     var dict: [Element.KeyType: Element] = [:]
-    var ids: [Element.KeyType] = []
-    var heads: Self = []
+    var roots: Self = []
     for item in self {
-      ids.append(try item.cursor())
-      guard let prev = item.previousCursor() else {
-        heads.append(item)
-        continue
-      }
-      if dict[prev] != nil {
-        heads.append(item)
+      guard let prev = item.previousCursor(), keys.contains(prev), dict[prev] == nil else {
+        roots.append(item)
         continue
       }
       dict[prev] = item
     }
-    for headId in dict.keys.filter({ !ids.contains($0) }) {
-      if let head = dict[headId] {
-        heads.append(head)
-      }
-    }
-    if heads.isEmpty {
+    if roots.isEmpty {
       throw "Invalid item tree"
     }
-    return try heads.map { head in
-      var result = [head]
-      var currentId = try head.cursor()
+    return try roots.map {
+      var tree = [$0]
+      var currentId = try $0.cursor()
       while let next = dict[currentId] {
+        tree.append(next)
         currentId = try next.cursor()
-        result.append(next)
       }
-      return result
+      return tree
     }
   }
 }
