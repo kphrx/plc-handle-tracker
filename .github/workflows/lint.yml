@@ -10,53 +10,17 @@ on:
     branches: [ "master" ]
 
 env:
-  SWIFT_VERSION: '5.9'
-  SWIFT_FORMAT_VERSION: '509.0.0'
+  SWIFT_VERSION: '5.10'
+  SWIFT_FORMAT_VERSION: '510.0.1'
 
 jobs:
-  build:
-
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v4
-    - uses: swift-actions/setup-swift@v1
-      with:
-        swift-version: ${{ env.SWIFT_VERSION }}
-    - name: Restore dependencies cache
-      uses: actions/cache@v4
-      with:
-        path: |
-          .build/repositories
-          .build/checkouts
-          .build/workspace-state.json
-        key: ${{ runner.os }}-swiftpm-${{ hashFiles('**/Package.*') }}
-
-    - name: Install dependencies
-      run: swift package resolve
-
-    - name: Build
-      if: runner.debug != '1'
-      run: swift build
-    - name: Build (verbose)
-      if: runner.debug == '1'
-      run: swift build -v
-
-    #- name: Run tests
-    #  if: runner.debug != '1'
-    #  run: swift test
-    #- name: Run tests (verbose)
-    #  if: runner.debug == '1'
-    #  run: swift test -v
-
-
   install-swift-format:
 
     runs-on: ubuntu-latest
 
     steps:
     - name: Set up Swift
-      uses: swift-actions/setup-swift@v1
+      uses: swift-actions/setup-swift@v2
       with:
         swift-version: ${{ env.SWIFT_VERSION }}
 
@@ -96,7 +60,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Set up Swift
-      uses: swift-actions/setup-swift@v1
+      uses: swift-actions/setup-swift@v2
       with:
         swift-version: ${{ env.SWIFT_VERSION }}
 
@@ -145,7 +109,7 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Set up Swift
-      uses: swift-actions/setup-swift@v1
+      uses: swift-actions/setup-swift@v2
       with:
         swift-version: ${{ env.SWIFT_VERSION }}
 
