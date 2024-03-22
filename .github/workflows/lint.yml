@@ -11,7 +11,7 @@ on:
 
 env:
   SWIFT_VERSION: '5.10'
-  SWIFT_FORMAT_VERSION: '510.0.1'
+  SWIFT_FORMAT_VERSION: '510.1.0'
 
 jobs:
   install-swift-format:
