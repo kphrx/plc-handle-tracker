@@ -7,7 +7,7 @@ enum BanReason: String, Codable {
   case missingHistory = "missing_history"
 }
 
-final class Did: Model, Content {
+final class Did: Model, Content, @unchecked Sendable {
   static let schema = "dids"
 
   static func findWithOperations(_ did: Did.IDValue?, on db: Database) async throws -> Did? {

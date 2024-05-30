@@ -5,7 +5,7 @@ enum HandleNameError: Error {
   case invalidCharacter
 }
 
-final class Handle: Model, Content {
+final class Handle: Model, Content, @unchecked Sendable {
   static let schema = "handles"
 
   static func findBy(handleName: String, withOp: Bool = false, on db: Database) async throws

@@ -1,7 +1,7 @@
 import Fluent
 import Vapor
 
-final class PollingHistory: Model, Content {
+final class PollingHistory: Model, Content, @unchecked Sendable {
   static func getLatestWithoutErrors(on database: Database) async throws -> PollingHistory? {
     let errors = try await PollingJobStatus.query(on: database).filter(\.$status == .error)
       .all(\.$history.$id)

@@ -1,7 +1,7 @@
 import Fluent
 import Vapor
 
-final class PollingJobStatus: Model, Content {
+final class PollingJobStatus: Model, Content, @unchecked Sendable {
   static let schema = "polling_job_statuses"
 
   @ID(custom: .id, generatedBy: .user)

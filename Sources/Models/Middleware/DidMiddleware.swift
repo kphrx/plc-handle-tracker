@@ -1,11 +1,19 @@
 import Fluent
 import Redis
+import Vapor
 
 struct DidMiddleware: AsyncModelMiddleware {
   typealias Model = Did
 
-  let redis: RedisClient
-  let logger: Logger
+  let app: Application
+
+  var redis: RedisClient {
+    self.app.redis
+  }
+
+  var logger: Logger {
+    self.app.logger
+  }
 
   func create(model: Model, on db: Database, next: AnyAsyncModelResponder) async throws {
     try await next.create(model, on: db)
