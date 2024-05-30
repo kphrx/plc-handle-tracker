@@ -2,10 +2,10 @@ import Fluent
 import FluentPostgresDriver
 import Vapor
 
-final class Operation: Model, Content {
+final class Operation: Model, Content, @unchecked Sendable {
   static let schema = "operations"
 
-  final class IDValue: Fields, Hashable {
+  final class IDValue: Fields, Hashable, @unchecked Sendable {
     @Field(key: "cid")
     var cid: String
 

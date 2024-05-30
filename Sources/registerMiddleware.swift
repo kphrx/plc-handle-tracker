@@ -9,6 +9,6 @@ func registerMiddleware(_ app: Application) {
     FileMiddleware(publicDirectory: app.directory.publicDirectory, directoryAction: .redirect))
 
   // database middleware
-  app.databases.middleware.use(DidMiddleware(redis: app.redis, logger: app.logger), on: .psql)
-  app.databases.middleware.use(HandleMiddleware(redis: app.redis, logger: app.logger), on: .psql)
+  app.databases.middleware.use(DidMiddleware(app: app), on: .psql)
+  app.databases.middleware.use(HandleMiddleware(app: app), on: .psql)
 }
