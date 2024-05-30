@@ -50,8 +50,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/vapor/fluent-postgres-driver.git",
       "state" : {
-        "revision" : "a538fc647f82d915eb84e0a12ca9b08c513e57c4",
-        "version" : "2.8.0"
+        "revision" : "2cc10e86a743c66cd60082174f602e3c223543dc",
+        "version" : "2.9.0"
       }
     },
     {
