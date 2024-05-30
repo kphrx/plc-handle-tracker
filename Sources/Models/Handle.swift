@@ -12,10 +12,10 @@ final class Handle: Model, Content, @unchecked Sendable {
     -> Handle?
   {
     let query = Handle.query(on: db).filter(\.$handle == handleName)
-    return try await if withOp {
-      query.with(\.$operations).first()
+    return if withOp {
+      try await query.with(\.$operations).first()
     } else {
-      query.first()
+      try await query.first()
     }
   }
 
