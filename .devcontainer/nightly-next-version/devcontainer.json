@@ -2,6 +2,10 @@
 	"dockerComposeFile": ["../compose.yml", "compose.yml"],
 	"service": "development",
 	"features": {
+		"ghcr.io/devcontainers/features/node:1": {
+			"version": "20",
+			"additionalVersions": "18"
+		},
 		"ghcr.io/devcontainers/features/sshd:1": {
 			"version": "latest"
 		},
