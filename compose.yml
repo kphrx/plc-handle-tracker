@@ -9,7 +9,7 @@ x-shared_environment: &shared_environment
 services:
 
   db:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     restart: always
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "vapor_username", "-d", "vapor_database"]
