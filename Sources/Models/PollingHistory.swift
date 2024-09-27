@@ -11,14 +11,22 @@ final class PollingHistory: Model, Content, @unchecked Sendable {
   }
 
   static func getLatestCompleted(on database: Database) async throws -> PollingHistory? {
+    try await PollingHistory.queryCompleted(on: database).sort(\.$insertedAt, .descending).first()
+  }
+
+  static func queryCompleted(on database: Database) async throws -> QueryBuilder<PollingHistory> {
     let errorOrRunnings = try await PollingJobStatus.query(on: database).filter(
       \.$status !~ [.success, .banned]
     ).all(\.$history.$id)
-    return try await PollingHistory.query(on: database).filter(\.$failed == false).filter(
-      \.$cid != .null
-    ).filter(\.$createdAt != .null).group(.or) {
-      $0.filter(\.$completed == true).filter(\.$id !~ errorOrRunnings)
-    }.sort(\.$insertedAt, .descending).first()
+    return PollingHistory.queryCompleted(on: database, errorOrRunnings)
+  }
+
+  static func queryCompleted(on database: Database, _ errorOrRunnings: [UUID]) -> QueryBuilder<
+    PollingHistory
+  > {
+    PollingHistory.query(on: database).filter(\.$failed == false).filter(\.$cid != .null).filter(
+      \.$createdAt != .null
+    ).group(.or) { $0.filter(\.$completed == true).filter(\.$id !~ errorOrRunnings) }
   }
 
   static let schema = "polling_history"
