@@ -2,9 +2,13 @@
 	"dockerComposeFile": ["compose.yml"],
 	"service": "development",
 	"features": {
+		"ghcr.io/devcontainers/features/git:1": {
+			"version": "latest"
+		},
 		"ghcr.io/devcontainers/features/node:1": {
-			"version": "20",
-			"additionalVersions": "18"
+			"version": "lts",
+			"pnpmVersion": "none",
+			"installYarnUsingApt": false
 		},
 		"ghcr.io/devcontainers/features/sshd:1": {
 			"version": "latest"
