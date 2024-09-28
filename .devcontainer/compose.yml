@@ -1,7 +1,7 @@
 version: '3'
 services:
   development:
-    image: ghcr.io/kphrx/swift-devcontainer:6.0-jammy
+    image: ghcr.io/kphrx/swift-devcontainer:6.0-noble
     volumes:
       - ../..:/workspaces:cached
     command: sleep infinity
