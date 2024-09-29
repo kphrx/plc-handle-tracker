@@ -207,20 +207,27 @@ extension Array where Element == ExportedOperation {
   ) {
     var nullifyOps: [Operation] = []
     var newOps: [Operation] = []
-    var prevOp: Operation?
+    var existOps: [Operation.IDValue: Operation] = [:]
     for exportedOp in self {
       if let operation = try await Operation.find(
         .init(cid: exportedOp.cid, did: exportedOp.did), on: app.db)
       {
-        prevOp = operation
+        existOps[try operation.requireID()] = operation
         if operation.nullified != exportedOp.nullified {
           operation.nullified = exportedOp.nullified
           nullifyOps.append(operation)
         }
         continue
       }
+      let prevOp: Operation? =
+        switch exportedOp.operation {
+        case .plcOperation(let op):
+          if let prev = op.prev { existOps[.init(cid: prev, did: exportedOp.did)] } else { nil }
+        case .plcTombstone(let op): existOps[.init(cid: op.prev, did: exportedOp.did)]
+        default: nil
+        }
       let operation = try await Operation(exportedOp: exportedOp, prevOp: prevOp, app: app)
-      prevOp = operation
+      existOps[try operation.requireID()] = operation
       newOps.append(operation)
     }
     return (nullifyOps, newOps)
