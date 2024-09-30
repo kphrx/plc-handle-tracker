@@ -11,12 +11,13 @@ final class Handle: Model, Content, @unchecked Sendable {
   static func findBy(handleName: String, withOp: Bool = false, on db: Database) async throws
     -> Handle?
   {
-    let query = Handle.query(on: db).filter(\.$handle == handleName)
-    return if withOp {
-      try await query.with(\.$operations).first()
-    } else {
-      try await query.first()
+    guard let handle = try await Handle.query(on: db).filter(\.$handle == handleName).first() else {
+      return nil
     }
+    if withOp {
+      try await handle.loadNonNullifiedOps(on: db)
+    }
+    return handle
   }
 
   static let invalidDomainNameCharacters = CharacterSet(charactersIn: "a"..."z")
@@ -38,6 +39,15 @@ final class Handle: Model, Content, @unchecked Sendable {
   @Children(for: \.$handle)
   var operations: [Operation]
 
+  private var operationsCache: [Operation]?
+
+  var nonNullifiedOperations: [Operation] {
+    guard let ops = self.operationsCache else {
+      fatalError("not eager loaded: nonNullifiedOperations")
+    }
+    return ops
+  }
+
   init() {}
 
   init(id: UUID? = nil, _ handle: String) throws {
@@ -46,5 +56,11 @@ final class Handle: Model, Content, @unchecked Sendable {
       throw HandleNameError.invalidCharacter
     }
     self.handle = handle
+  }
+
+  func loadNonNullifiedOps(on db: Database) async throws {
+    self.operationsCache = try await Operation.query(on: db).filter(
+      \.$handle.$id == self.requireID()
+    ).filter(\.$nullified == false).all()
   }
 }

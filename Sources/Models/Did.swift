@@ -10,12 +10,12 @@ enum BanReason: String, Codable {
 final class Did: Model, Content, @unchecked Sendable {
   static let schema = "dids"
 
-  static func findWithOperations(_ did: Did.IDValue?, on db: Database) async throws -> Did? {
-    if let did {
-      try await Did.query(on: db).filter(\.$id == did).with(\.$operations).first()
-    } else {
-      nil
+  static func findWithOperations(_ id: Did.IDValue?, on db: Database) async throws -> Did? {
+    guard let id, let did = try await Did.query(on: db).filter(\.$id == id).first() else {
+      return nil
     }
+    try await did.loadNonNullifiedOps(on: db)
+    return did
   }
 
   @ID(custom: "did", generatedBy: .user)
@@ -30,6 +30,15 @@ final class Did: Model, Content, @unchecked Sendable {
   @Children(for: \.$id.$did)
   var operations: [Operation]
 
+  private var operationsCache: [Operation]?
+
+  var nonNullifiedOperations: [Operation] {
+    guard let ops = self.operationsCache else {
+      fatalError("not eager loaded: nonNullifiedOperations")
+    }
+    return ops
+  }
+
   init() {}
 
   init(_ did: String, banned: Bool = false, reason: BanReason? = nil) {
@@ -38,6 +47,12 @@ final class Did: Model, Content, @unchecked Sendable {
     if banned {
       self.reason = reason ?? .incompatibleAtproto
     }
+  }
+
+  func loadNonNullifiedOps(on db: Database) async throws {
+    self.operationsCache = try await Operation.query(on: db).filter(
+      \.$id.$did.$id == self.requireID()
+    ).filter(\.$nullified == false).all()
   }
 }
 

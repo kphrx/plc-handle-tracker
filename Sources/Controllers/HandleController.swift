@@ -111,7 +111,7 @@ struct HandleController: RouteCollection {
         try await withThrowingTaskGroup(
           of: (Int, HandleShowContext.HandleUsagePeriod, HandleShowContext.Current?).self
         ) {
-          let usagePeriod = try handle.operations.treeSort()
+          let usagePeriod = try handle.nonNullifiedOperations.treeSort()
           for (i, ops) in usagePeriod.enumerated() {
             guard let firstOp = ops.first, let lastOp = ops.last else {
               continue

@@ -191,24 +191,45 @@ extension ExportedOperation: TreeSort {
 
 extension Array where Element == ExportedOperation {
   func insert(app: Application) async throws {
-    var operations: [Operation] = []
-    var prevOp: Operation?
+    let (updateOp, createOp) = try await self.toChangeOperation(app: app)
+    try await app.db.transaction { transaction in
+      for op in updateOp {
+        try await op.update(on: transaction)
+      }
+      for op in createOp {
+        try await op.create(on: transaction)
+      }
+    }
+  }
+
+  private func toChangeOperation(app: Application) async throws -> (
+    nullify: [Operation], newOps: [Operation]
+  ) {
+    var nullifyOps: [Operation] = []
+    var newOps: [Operation] = []
+    var existOps: [Operation.IDValue: Operation] = [:]
     for exportedOp in self {
       if let operation = try await Operation.find(
         .init(cid: exportedOp.cid, did: exportedOp.did), on: app.db)
       {
-        prevOp = operation
+        existOps[try operation.requireID()] = operation
+        if operation.nullified != exportedOp.nullified {
+          operation.nullified = exportedOp.nullified
+          nullifyOps.append(operation)
+        }
         continue
       }
+      let prevOp: Operation? =
+        switch exportedOp.operation {
+        case .plcOperation(let op):
+          if let prev = op.prev { existOps[.init(cid: prev, did: exportedOp.did)] } else { nil }
+        case .plcTombstone(let op): existOps[.init(cid: op.prev, did: exportedOp.did)]
+        default: nil
+        }
       let operation = try await Operation(exportedOp: exportedOp, prevOp: prevOp, app: app)
-      prevOp = operation
-      operations.append(operation)
+      existOps[try operation.requireID()] = operation
+      newOps.append(operation)
     }
-    let ops = operations
-    try await app.db.transaction { transaction in
-      for op in ops {
-        try await op.create(on: transaction)
-      }
-    }
+    return (nullifyOps, newOps)
   }
 }

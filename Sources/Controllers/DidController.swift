@@ -134,10 +134,10 @@ struct DidController: RouteCollection {
     if didPlc.banned {
       throw Abort(.notFound, reason: didPlc.reason?.rawValue)
     }
-    if didPlc.operations.isEmpty {
+    if didPlc.nonNullifiedOperations.isEmpty {
       throw Abort(.notFound, reason: "Operation not stored")
     }
-    guard let operations = try didPlc.operations.treeSort().first else {
+    guard let operations = try didPlc.nonNullifiedOperations.treeSort().first else {
       throw Abort(.internalServerError, reason: "Broken operation tree")
     }
     let updateHandleOps = try await withThrowingTaskGroup(
