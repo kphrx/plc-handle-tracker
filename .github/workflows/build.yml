@@ -13,17 +13,14 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
+    container: swift:${{ matrix.swift-version }}
     strategy:
       matrix:
         swift-version:
-          - '5.9'
-          - '5.10'
+          - '6.0-noble'
 
     steps:
     - uses: actions/checkout@v4
-    - uses: swift-actions/setup-swift@v2
-      with:
-        swift-version: ${{ matrix.swift-version }}
     - name: Restore dependencies cache
       uses: actions/cache@v4
       with:
@@ -31,7 +28,7 @@ jobs:
           .build/repositories
           .build/checkouts
           .build/workspace-state.json
-        key: ${{ runner.os }}-swiftpm-${{ hashFiles('**/Package.*') }}
+        key: ${{ runner.os }}-swiftpm-${{ hashFiles('Package.*') }}
 
     - name: Install dependencies
       run: swift package resolve
