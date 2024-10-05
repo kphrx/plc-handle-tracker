@@ -1,9 +1,9 @@
 import Vapor
 
-class RouteLoggingMiddleware: Middleware {
+class RouteLoggingMiddleware: AsyncMiddleware {
   let logLevel: Logger.Level = .info
 
-  func respond(to request: Request, chainingTo next: Responder) -> EventLoopFuture<Response> {
+  func respond(to request: Request, chainingTo next: AsyncResponder) async throws -> Response {
     let query =
       if let query = request.url.query {
         "?\(query.removingPercentEncoding ?? query)"
@@ -13,6 +13,6 @@ class RouteLoggingMiddleware: Middleware {
     request.logger.log(
       level: self.logLevel,
       "\(request.method) \(request.url.path.removingPercentEncoding ?? request.url.path)\(query)")
-    return next.respond(to: request)
+    return try await next.respond(to: request)
   }
 }
