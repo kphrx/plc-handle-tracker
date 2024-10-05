@@ -1,6 +1,6 @@
 import Vapor
 
-class RouteLoggingMiddleware: AsyncMiddleware {
+struct RouteLoggingMiddleware: AsyncMiddleware {
   let logLevel: Logger.Level = .info
 
   func respond(to request: Request, chainingTo next: AsyncResponder) async throws -> Response {
