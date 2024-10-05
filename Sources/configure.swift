@@ -4,14 +4,14 @@ import QueuesRedisDriver
 import Vapor
 
 func registerCustomCoder() {
-  // milliseconds RFC 3339 encoder/decoder
-  let dateFormatter = ISO8601DateFormatter()
-  dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+  // milliseconds RFC 3339 FormatStyle
+  let formatStyle = Date.ISO8601FormatStyle.iso8601.dateSeparator(.dash).year().month().day()
+    .timeZone(separator: .colon).time(includingFractionalSeconds: true).timeSeparator(.colon)
 
   let encoder = JSONEncoder.custom(
     dates: .custom({ (date, encoder) in
       var container = encoder.singleValueContainer()
-      try container.encode(dateFormatter.string(from: date))
+      try container.encode(date.formatted(formatStyle))
     }))
   ContentConfiguration.global.use(encoder: encoder, for: .json)
   ContentConfiguration.global.use(encoder: encoder, for: .jsonAPI)
@@ -20,13 +20,14 @@ func registerCustomCoder() {
     dates: .custom({ decoder in
       let container = try decoder.singleValueContainer()
       let string = try container.decode(String.self)
-      guard let date = dateFormatter.date(from: string) else {
+      do {
+        return try formatStyle.parse(string)
+      } catch {
         throw DecodingError.dataCorrupted(
           DecodingError.Context(
             codingPath: decoder.codingPath,
             debugDescription: "Expected date string to be ISO8601-formatted."))
       }
-      return date
     }))
   ContentConfiguration.global.use(decoder: decoder, for: .json)
   ContentConfiguration.global.use(decoder: decoder, for: .jsonAPI)
