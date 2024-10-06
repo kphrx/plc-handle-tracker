@@ -5,8 +5,7 @@ import Vapor
 
 func registerCustomCoder() {
   // milliseconds RFC 3339 FormatStyle
-  let formatStyle = Date.ISO8601FormatStyle.iso8601.dateSeparator(.dash).year().month().day()
-    .timeZone(separator: .colon).time(includingFractionalSeconds: true).timeSeparator(.colon)
+  let formatStyle = Date.ISO8601FormatStyle(includingFractionalSeconds: true)
 
   let encoder = JSONEncoder.custom(
     dates: .custom({ (date, encoder) in
