@@ -63,9 +63,7 @@ struct PollingPlcServerExportJob: AsyncJob {
     var url: URI = "https://plc.directory/export"
     url.query =
       if let after = after.map({ date in
-        let dateFormatter = ISO8601DateFormatter()
-        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return dateFormatter.string(from: date)
+        return date.formatted(Date.ISO8601FormatStyle(includingFractionalSeconds: true))
       }) {
         "count=\(count)&after=\(after)"
       } else {
