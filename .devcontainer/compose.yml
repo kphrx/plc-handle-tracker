@@ -7,7 +7,7 @@ services:
     command: sleep infinity
 
   db:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     restart: always
     network_mode: service:development
     healthcheck:
