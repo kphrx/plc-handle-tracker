@@ -55,8 +55,8 @@ final class Operation: Model, Content, @unchecked Sendable {
   init() {}
 
   init(
-    cid: String, did: String, nullified: Bool, createdAt: Date,
-    prev: Operation? = nil, handle: Handle? = nil, pds: PersonalDataServer? = nil
+    cid: String, did: String, nullified: Bool, createdAt: Date, prev: Operation? = nil,
+    handle: Handle? = nil, pds: PersonalDataServer? = nil
   ) throws {
     self.id = .init(cid: cid, did: did)
     self.nullified = nullified
@@ -68,9 +68,7 @@ final class Operation: Model, Content, @unchecked Sendable {
     self.$pds.id = try pds?.requireID()
   }
 
-  init(
-    cid: String, did: String, nullified: Bool, createdAt: Date
-  ) throws {
+  init(cid: String, did: String, nullified: Bool, createdAt: Date) throws {
     self.id = .init(cid: cid, did: did)
     self.nullified = nullified
     self.createdAt = createdAt

@@ -35,7 +35,8 @@ struct AddCompletedColumnToPollingHistoryTable: AsyncMigration {
           h.completed = true
           AND h.cid = o.cid
         """
-      ).run()
+      )
+      .run()
     } else {
       throw "not supported currently database"
     }

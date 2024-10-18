@@ -16,7 +16,8 @@ struct AddPrevDidColumnForPrevForeignKey: AsyncMigration {
           SET prev_did = did
           WHERE prev_cid IS NOT NULL
           """
-        ).run()
+        )
+        .run()
       } else {
         throw "not supported currently database"
       }
@@ -30,8 +31,7 @@ struct AddPrevDidColumnForPrevForeignKey: AsyncMigration {
           SQLBinaryExpression(
             SQLBinaryExpression(SQLIdentifier("prev_cid"), .isNot, SQLLiteral.null),
             .and,
-            SQLBinaryExpression(SQLIdentifier("prev_did"), .isNot, SQLLiteral.null))
-        ))
+            SQLBinaryExpression(SQLIdentifier("prev_did"), .isNot, SQLLiteral.null))))
       try await transaction.schema("operations")
         .foreignKey(
           ["prev_cid", "prev_did"], references: "operations", ["cid", "did"],

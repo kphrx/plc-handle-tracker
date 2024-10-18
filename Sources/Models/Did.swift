@@ -50,9 +50,8 @@ final class Did: Model, Content, @unchecked Sendable {
   }
 
   func loadNonNullifiedOps(on db: Database) async throws {
-    self.operationsCache = try await Operation.query(on: db).filter(
-      \.$id.$did.$id == self.requireID()
-    ).filter(\.$nullified == false).all()
+    self.operationsCache = try await Operation.query(on: db)
+      .filter(\.$id.$did.$id == self.requireID()).filter(\.$nullified == false).all()
   }
 }
 

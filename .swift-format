@@ -14,7 +14,7 @@
   "lineBreakBetweenDeclarationAttributes": false,
   "prioritizeKeepingFunctionOutputTogether": false,
   "indentConditionalCompilationBlocks": true,
-  "lineBreakAroundMultilineExpressionChainComponents": false,
+  "lineBreakAroundMultilineExpressionChainComponents": true,
   "fileScopedDeclarationPrivacy": {
     "accessLevel": "private"
   },

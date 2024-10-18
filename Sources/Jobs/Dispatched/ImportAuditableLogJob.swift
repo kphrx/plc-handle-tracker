@@ -20,9 +20,8 @@ struct ImportAuditableLogJob: AsyncJob {
       app.logger.report(error: error)
     }
     do {
-      try await PollingJobStatus.query(on: app.db).set(\.$status, to: .success).filter(
-        \.$did == payload
-      ).update()
+      try await PollingJobStatus.query(on: app.db).set(\.$status, to: .success)
+        .filter(\.$did == payload).update()
     } catch {
       app.logger.report(error: error)
     }
@@ -40,9 +39,8 @@ struct ImportAuditableLogJob: AsyncJob {
       app.logger.report(error: error)
     }
     do {
-      try await PollingJobStatus.query(on: app.db).set(\.$status, to: .banned).filter(
-        \.$status != .banned
-      ).filter(\.$did == payload).update()
+      try await PollingJobStatus.query(on: app.db).set(\.$status, to: .banned)
+        .filter(\.$status != .banned).filter(\.$did == payload).update()
     } catch {
       app.logger.report(error: error)
     }

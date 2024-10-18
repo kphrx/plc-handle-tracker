@@ -80,11 +80,12 @@ struct HandleRepository {
       if !Environment.getBool("DISABLE_NON_C_LOCALE_POSTGRES_SEARCH_OPTIMIZE")
         && self.db is PostgresDatabase
       {
-        Handle.query(on: self.db).filter(\.$handle >= handlePrefix).filter(
-          \.$handle
-            <= .custom(
-              SQLFunction("CONCAT", args: SQLLiteral.string(handlePrefix), SQLLiteral.string("~")))
-        )
+        Handle.query(on: self.db).filter(\.$handle >= handlePrefix)
+          .filter(
+            \.$handle
+              <= .custom(
+                SQLFunction("CONCAT", args: SQLLiteral.string(handlePrefix), SQLLiteral.string("~"))
+              ))
       } else {
         Handle.query(on: self.db).filter(\.$handle =~ handlePrefix)
       }

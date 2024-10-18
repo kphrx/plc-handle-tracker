@@ -60,11 +60,11 @@ struct ErrorMiddleware: AsyncMiddleware {
     -> Response
   {
     do {
-      return try await req.view.render("error/\(status.code)", context).encodeResponse(
-        status: status, for: req)
+      return try await req.view.render("error/\(status.code)", context)
+        .encodeResponse(status: status, for: req)
     } catch {
-      return try await req.view.render("error/default", context).encodeResponse(
-        status: status, for: req)
+      return try await req.view.render("error/default", context)
+        .encodeResponse(status: status, for: req)
     }
   }
 }

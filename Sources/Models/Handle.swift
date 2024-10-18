@@ -21,9 +21,7 @@ final class Handle: Model, Content, @unchecked Sendable {
   }
 
   static let invalidDomainNameCharacters = CharacterSet(charactersIn: "a"..."z")
-    .union(.init(charactersIn: "0"..."9"))
-    .union(.init(charactersIn: ".-"))
-    .inverted
+    .union(.init(charactersIn: "0"..."9")).union(.init(charactersIn: ".-")).inverted
 
   static func validate(_ handle: String) -> Bool {
     return handle.count > 3
@@ -59,8 +57,7 @@ final class Handle: Model, Content, @unchecked Sendable {
   }
 
   func loadNonNullifiedOps(on db: Database) async throws {
-    self.operationsCache = try await Operation.query(on: db).filter(
-      \.$handle.$id == self.requireID()
-    ).filter(\.$nullified == false).all()
+    self.operationsCache = try await Operation.query(on: db)
+      .filter(\.$handle.$id == self.requireID()).filter(\.$nullified == false).all()
   }
 }
