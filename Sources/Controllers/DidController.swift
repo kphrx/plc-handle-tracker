@@ -19,18 +19,18 @@ enum DidSearchResult {
 
   var message: String? {
     switch self {
-    case .notFound(let did): "Not found: \(did)"
-    case .invalidFormat(let did): "Invalid DID format: \(did)"
-    default: nil
+      case .notFound(let did): "Not found: \(did)"
+      case .invalidFormat(let did): "Invalid DID format: \(did)"
+      default: nil
     }
   }
 
   var status: HTTPResponseStatus {
     switch self {
-    case .notFound: .notFound
-    case .invalidFormat: .badRequest
-    case .redirect: .movedPermanently
-    case .none: .ok
+      case .notFound: .notFound
+      case .invalidFormat: .badRequest
+      case .redirect: .movedPermanently
+      case .none: .ok
     }
   }
 }

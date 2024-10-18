@@ -13,25 +13,25 @@ enum HandleSearchResult {
 
   var list: [String] {
     switch self {
-    case .list(_, let result): result
-    default: []
+      case .list(_, let result): result
+      default: []
     }
   }
 
   var message: String? {
     switch self {
-    case .invalid(let handle): "Invalid pattern: @\(handle)"
-    case .list(let handle, let result) where result.isEmpty: "Not found: @\(handle)*"
-    case .list(let handle, result: _): "Search: @\(handle)*"
-    default: nil
+      case .invalid(let handle): "Invalid pattern: @\(handle)"
+      case .list(let handle, let result) where result.isEmpty: "Not found: @\(handle)*"
+      case .list(let handle, result: _): "Search: @\(handle)*"
+      default: nil
     }
   }
 
   var status: HTTPResponseStatus {
     switch self {
-    case .invalid: .badRequest
-    case .list(_, let result) where result.isEmpty: .notFound
-    case .list, .none: .ok
+      case .invalid: .badRequest
+      case .list(_, let result) where result.isEmpty: .notFound
+      case .list, .none: .ok
     }
   }
 }
@@ -93,8 +93,8 @@ struct HandleController: RouteCollection {
       return .none
     }
     return switch try await repo.search(prefix: handle) {
-    case .some(let result): .list(handle, result: result)
-    case .none: .invalid(handle)
+      case .some(let result): .list(handle, result: result)
+      case .none: .invalid(handle)
     }
   }
 

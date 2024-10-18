@@ -18,7 +18,7 @@
   "fileScopedDeclarationPrivacy": {
     "accessLevel": "private"
   },
-  "indentSwitchCaseLabels": false,
+  "indentSwitchCaseLabels": true,
   "rules": {
     "AllPublicDeclarationsHaveDocumentation": false,
     "AlwaysUseLiteralForEmptyCollectionInit": false,

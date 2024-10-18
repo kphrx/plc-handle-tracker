@@ -25,18 +25,18 @@ struct NavLinkTag: UnsafeUnescapedLeafTag {
 
   private func parameters(_ parameters: [LeafData]) throws -> (String, Bool) {
     switch parameters.count {
-    case 0:
-      throw NavLinkTagError.missingHRefParameter
-    case 1:
-      throw NavLinkTagError.missingRouteParameter
-    default:
-      guard let href = parameters[0].string else {
+      case 0:
         throw NavLinkTagError.missingHRefParameter
-      }
-      guard let route = parameters[1].string else {
+      case 1:
         throw NavLinkTagError.missingRouteParameter
-      }
-      return (href, route == "GET \(href)")
+      default:
+        guard let href = parameters[0].string else {
+          throw NavLinkTagError.missingHRefParameter
+        }
+        guard let route = parameters[1].string else {
+          throw NavLinkTagError.missingRouteParameter
+        }
+        return (href, route == "GET \(href)")
     }
   }
 }

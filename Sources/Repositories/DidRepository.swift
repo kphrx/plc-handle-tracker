@@ -146,12 +146,12 @@ extension DidRepository {
   func ban(_ dids: String, error err: OpParseError) async throws {
     let reason: BanReason =
       switch err {
-      case .invalidHandle:
-        .invalidHandle
-      case .unknownPreviousOp:
-        .missingHistory
-      default:
-        .incompatibleAtproto
+        case .invalidHandle:
+          .invalidHandle
+        case .unknownPreviousOp:
+          .missingHistory
+        default:
+          .incompatibleAtproto
       }
     try await self.ban(dids, reason: reason)
   }

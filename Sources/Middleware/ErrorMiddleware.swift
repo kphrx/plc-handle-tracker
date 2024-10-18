@@ -22,15 +22,19 @@ struct ErrorMiddleware: AsyncMiddleware {
   private func handle(error: Error, route: String) -> (HTTPStatus, String?, ErrorContext) {
     let status: HTTPStatus =
       switch error {
-      case let abort as AbortError: abort.status
-      default: .internalServerError
+        case let abort as AbortError: abort.status
+        default: .internalServerError
       }
     let reason: String? =
       switch error {
-      case let abort as AbortError:
-        if abort.reason != status.reasonPhrase { abort.reason } else { nil }
-      default:
-        if self.environment.isRelease { "Something went wrong." } else { String(describing: error) }
+        case let abort as AbortError:
+          if abort.reason != status.reasonPhrase { abort.reason } else { nil }
+        default:
+          if self.environment.isRelease {
+            "Something went wrong."
+          } else {
+            String(describing: error)
+          }
       }
     let context = ErrorContext(
       title: "\(status.code) \(status.reasonPhrase)", route: route, reason: reason)

@@ -15,9 +15,9 @@ enum CompatibleOperationOrTombstone: Encodable {
 
   func encode(to encoder: Encoder) throws {
     switch self {
-    case .create(let createOp): try createOp.encode(to: encoder)
-    case .plcOperation(let plcOp): try plcOp.encode(to: encoder)
-    case .plcTombstone(let tombstoneOp): try tombstoneOp.encode(to: encoder)
+      case .create(let createOp): try createOp.encode(to: encoder)
+      case .plcOperation(let plcOp): try plcOp.encode(to: encoder)
+      case .plcTombstone(let tombstoneOp): try tombstoneOp.encode(to: encoder)
     }
   }
 }
@@ -152,25 +152,25 @@ struct ExportedOperation: Content {
     self.createdAt = try container.decode(Date.self, forKey: .createdAt)
     let operation = try container.decode(GenericOperaion.self, forKey: .operation)
     switch operation.type {
-    case .create:
-      self.operation = .create(
-        .init(
-          sig: operation.sig, handle: operation.handle!, service: operation.service!,
-          signingKey: operation.signingKey!, recoveryKey: operation.recoveryKey!))
-    case .plcOperation:
-      guard let signingKey = operation.verificationMethods?["atproto"],
-        let atprotoPds = operation.services?["atproto_pds"],
-        atprotoPds.type == "AtprotoPersonalDataServer"
-      else {
-        throw OpParseError.notUsedInAtproto(self.did, self.createdAt)
-      }
-      self.operation = .plcOperation(
-        .init(
-          sig: operation.sig, prev: operation.prev, services: Services(atprotoPds: atprotoPds),
-          alsoKnownAs: operation.alsoKnownAs!, rotationKeys: operation.rotationKeys!,
-          verificationMethods: PlcOperation.VerificationMethods(atproto: signingKey)))
-    case .plcTombstone:
-      self.operation = .plcTombstone(.init(sig: operation.sig, prev: operation.prev!))
+      case .create:
+        self.operation = .create(
+          .init(
+            sig: operation.sig, handle: operation.handle!, service: operation.service!,
+            signingKey: operation.signingKey!, recoveryKey: operation.recoveryKey!))
+      case .plcOperation:
+        guard let signingKey = operation.verificationMethods?["atproto"],
+          let atprotoPds = operation.services?["atproto_pds"],
+          atprotoPds.type == "AtprotoPersonalDataServer"
+        else {
+          throw OpParseError.notUsedInAtproto(self.did, self.createdAt)
+        }
+        self.operation = .plcOperation(
+          .init(
+            sig: operation.sig, prev: operation.prev, services: Services(atprotoPds: atprotoPds),
+            alsoKnownAs: operation.alsoKnownAs!, rotationKeys: operation.rotationKeys!,
+            verificationMethods: PlcOperation.VerificationMethods(atproto: signingKey)))
+      case .plcTombstone:
+        self.operation = .plcTombstone(.init(sig: operation.sig, prev: operation.prev!))
     }
   }
 }
@@ -182,9 +182,9 @@ extension ExportedOperation: TreeSort {
   }
   func previousCursor() -> KeyType? {
     switch self.operation {
-    case .create: nil
-    case .plcOperation(let plcOp): plcOp.prev
-    case .plcTombstone(let tombstoneOp): tombstoneOp.prev
+      case .create: nil
+      case .plcOperation(let plcOp): plcOp.prev
+      case .plcTombstone(let tombstoneOp): tombstoneOp.prev
     }
   }
 }
@@ -221,10 +221,10 @@ extension Array where Element == ExportedOperation {
       }
       let prevOp: Operation? =
         switch exportedOp.operation {
-        case .plcOperation(let op):
-          if let prev = op.prev { existOps[.init(cid: prev, did: exportedOp.did)] } else { nil }
-        case .plcTombstone(let op): existOps[.init(cid: op.prev, did: exportedOp.did)]
-        default: nil
+          case .plcOperation(let op):
+            if let prev = op.prev { existOps[.init(cid: prev, did: exportedOp.did)] } else { nil }
+          case .plcTombstone(let op): existOps[.init(cid: op.prev, did: exportedOp.did)]
+          default: nil
         }
       let operation = try await Operation(exportedOp: exportedOp, prevOp: prevOp, app: app)
       existOps[try operation.requireID()] = operation
