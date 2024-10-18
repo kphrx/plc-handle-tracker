@@ -67,9 +67,7 @@ struct HandleController: RouteCollection {
   func boot(routes: RoutesBuilder) throws {
     let handles = routes.grouped("handle")
     handles.get(use: index)
-    handles.group(":handle") { handle in
-      handle.get(use: show)
-    }
+    handles.group(":handle") { $0.get(use: show) }
   }
 
   func index(req: Request) async throws -> ViewOrRedirect {
@@ -107,34 +105,43 @@ struct HandleController: RouteCollection {
       throw Abort(.notFound)
     }
     let (handleUsagePeriod, currents):
-      ([HandleShowContext.HandleUsagePeriod], [HandleShowContext.Current]) =
+      (period: [HandleShowContext.HandleUsagePeriod], current: [HandleShowContext.Current]) =
         try await withThrowingTaskGroup(
-          of: (Int, HandleShowContext.HandleUsagePeriod, HandleShowContext.Current?).self
-        ) {
+          of: (
+            idx: Int, period: HandleShowContext.HandleUsagePeriod,
+            current: HandleShowContext.Current?
+          )
+          .self
+        ) { group in
           let usagePeriod = try handle.nonNullifiedOperations.treeSort()
-          for (i, ops) in usagePeriod.enumerated() {
+          for (idx, ops) in usagePeriod.enumerated() {
             guard let firstOp = ops.first, let lastOp = ops.last else {
               continue
             }
             let did = firstOp.$id.$did.id
-            $0.addTask {
+            group.addTask { () in
               guard let untilOp = try await lastOp.$nexts.get(on: req.db).first else {
                 return try await (
-                  i, .init(did: did, createdAt: firstOp.createdAt, updatedAt: nil),
+                  idx, .init(did: did, createdAt: firstOp.createdAt, updatedAt: nil),
                   .init(did: did, pds: lastOp.$pds.get(on: req.db)!.endpoint)
                 )
               }
               return (
-                i, .init(did: did, createdAt: firstOp.createdAt, updatedAt: untilOp.createdAt), nil
+                idx, .init(did: did, createdAt: firstOp.createdAt, updatedAt: untilOp.createdAt),
+                nil
               )
             }
           }
-          return try await $0.reduce(into: Array(repeating: nil, count: usagePeriod.count)) {
-            $0[$1.0] = ($1.1, $1.2)
-          }.compactMap { $0 }.reduce(into: ([], [])) {
-            if let current = $1.1 { $0.1.append(current) }
-            $0.0.append($1.0)
-          }
+          return
+            try await group.reduce(into: Array(repeating: nil, count: usagePeriod.count)) {
+              $0[$1.idx] = (period: $1.period, current: $1.current)
+            }
+            .compactMap { $0 }
+            .reduce(into: ([], [])) { acc, result in
+              let (period, current) = result
+              acc.period.append(period)
+              if let current { acc.current.append(current) }
+            }
         }
     return try await req.view.render(
       "handle/show",
