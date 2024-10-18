@@ -91,7 +91,7 @@ struct DidRepository {
   }
 
   func createIfNoxExists(_ did: String) async throws {
-    if !Did.validate(did: did) {
+    guard Did.validate(did: did) else {
       throw "Invalid DID Placeholder"
     }
     if try await Did.find(did, on: self.db) != nil {

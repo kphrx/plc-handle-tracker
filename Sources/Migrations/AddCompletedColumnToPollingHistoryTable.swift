@@ -7,14 +7,13 @@ struct AddCompletedColumnToPollingHistoryTable: AsyncMigration {
       .field("completed", .bool, .required, .custom("DEFAULT false"))
       .update()
     try await database.transaction { transaction in
-      if let sql = transaction as? SQLDatabase {
-        try await sql.update("polling_history")
-          .set("completed", to: SQLLiteral.boolean(true))
-          .where("operation", .isNot, SQLLiteral.null)
-          .run()
-      } else {
+      guard let sql = transaction as? SQLDatabase else {
         throw "not supported currently database"
       }
+      try await sql.update("polling_history")
+        .set("completed", to: SQLLiteral.boolean(true))
+        .where("operation", .isNot, SQLLiteral.null)
+        .run()
     }
     try await database.schema("polling_history")
       .deleteField("operation")

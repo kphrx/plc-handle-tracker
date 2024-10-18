@@ -125,7 +125,7 @@ struct DidController: RouteCollection {
     guard let did = req.parameters.get("did") else {
       throw Abort(.internalServerError)
     }
-    if !Did.validate(did: did) {
+    guard Did.validate(did: did) else {
       throw Abort(.badRequest, reason: "Invalid DID format")
     }
     guard let didPlc = try await req.didRepository.findOrFetch(did) else {

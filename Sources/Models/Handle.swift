@@ -50,7 +50,7 @@ final class Handle: Model, Content, @unchecked Sendable {
 
   init(id: UUID? = nil, _ handle: String) throws {
     self.id = id
-    if !Self.validate(handle) {
+    guard Self.validate(handle) else {
       throw HandleNameError.invalidCharacter
     }
     self.handle = handle

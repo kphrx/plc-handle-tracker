@@ -57,7 +57,7 @@ final class Did: Model, Content, @unchecked Sendable {
 
 extension Did {
   static func validate(did: String) -> Bool {
-    if !did.hasPrefix("did:plc:") {
+    guard did.hasPrefix("did:plc:") else {
       return false
     }
     let specificId = did.replacingOccurrences(of: "did:plc:", with: "")
