@@ -16,7 +16,8 @@ struct ChangePrimaryKeyToNaturalKeyOfDidAndCid: AsyncMigration {
           FROM dids AS d
           WHERE o.did = d.id::text
           """
-        ).run()
+        )
+        .run()
       } else {
         throw "not supported currently database"
       }
@@ -42,7 +43,8 @@ struct ChangePrimaryKeyToNaturalKeyOfDidAndCid: AsyncMigration {
           FROM operations AS o2
           WHERE o1.prev = o2.id::text
           """
-        ).run()
+        )
+        .run()
       } else {
         throw "not supported currently database"
       }

@@ -20,18 +20,18 @@ struct ExternalLinkTag: UnsafeUnescapedLeafTag {
 
   private func parameters(_ parameters: [LeafData]) throws -> (String, String) {
     switch parameters.count {
-    case 0:
-      throw ExternalLinkTagError.missingHRefParameter
-    case 1:
-      guard let href = parameters[0].string else {
+      case 0:
         throw ExternalLinkTagError.missingHRefParameter
-      }
-      return (href, href)
-    default:
-      guard let href = parameters[0].string else {
-        throw ExternalLinkTagError.missingHRefParameter
-      }
-      return (href, parameters[1].string ?? href)
+      case 1:
+        guard let href = parameters[0].string else {
+          throw ExternalLinkTagError.missingHRefParameter
+        }
+        return (href, href)
+      default:
+        guard let href = parameters[0].string else {
+          throw ExternalLinkTagError.missingHRefParameter
+        }
+        return (href, parameters[1].string ?? href)
     }
   }
 }

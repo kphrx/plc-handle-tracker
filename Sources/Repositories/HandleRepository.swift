@@ -41,7 +41,7 @@ struct HandleRepository {
   }
 
   func exists(_ handleName: String) async throws -> Bool {
-    if !Handle.validate(handleName) {
+    guard Handle.validate(handleName) else {
       return false
     }
     let cacheKey = RedisKey(Self.notFoundCacheKey)
@@ -64,7 +64,7 @@ struct HandleRepository {
   }
 
   func search(prefix handlePrefix: String) async throws -> [String]? {
-    if !Handle.validate(handlePrefix) {
+    guard Handle.validate(handlePrefix) else {
       return nil
     }
     let cacheKey = RedisKey("\(Self.searchCacheKey):\(handlePrefix)")
@@ -80,11 +80,12 @@ struct HandleRepository {
       if !Environment.getBool("DISABLE_NON_C_LOCALE_POSTGRES_SEARCH_OPTIMIZE")
         && self.db is PostgresDatabase
       {
-        Handle.query(on: self.db).filter(\.$handle >= handlePrefix).filter(
-          \.$handle
-            <= .custom(
-              SQLFunction("CONCAT", args: SQLLiteral.string(handlePrefix), SQLLiteral.string("~")))
-        )
+        Handle.query(on: self.db).filter(\.$handle >= handlePrefix)
+          .filter(
+            \.$handle
+              <= .custom(
+                SQLFunction("CONCAT", args: SQLLiteral.string(handlePrefix), SQLLiteral.string("~"))
+              ))
       } else {
         Handle.query(on: self.db).filter(\.$handle =~ handlePrefix)
       }

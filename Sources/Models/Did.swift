@@ -50,15 +50,14 @@ final class Did: Model, Content, @unchecked Sendable {
   }
 
   func loadNonNullifiedOps(on db: Database) async throws {
-    self.operationsCache = try await Operation.query(on: db).filter(
-      \.$id.$did.$id == self.requireID()
-    ).filter(\.$nullified == false).all()
+    self.operationsCache = try await Operation.query(on: db)
+      .filter(\.$id.$did.$id == self.requireID()).filter(\.$nullified == false).all()
   }
 }
 
 extension Did {
   static func validate(did: String) -> Bool {
-    if !did.hasPrefix("did:plc:") {
+    guard did.hasPrefix("did:plc:") else {
       return false
     }
     let specificId = did.replacingOccurrences(of: "did:plc:", with: "")

@@ -27,9 +27,14 @@ struct CleanupCacheCommand: AsyncCommand {
     )
     context.console.print("Clear expired search cache")
     let searchCacheKey = RedisKey(HandleRepository.searchCacheKey)
-    let searched = try await app.redis.smembers(of: searchCacheKey, as: String.self).compactMap {
-      $0.map { ($0, "\(HandleRepository.searchCacheKey):\($0)") }
-    }
+    let searched = try await app.redis.smembers(of: searchCacheKey, as: String.self)
+      .compactMap { value in
+        if let value {
+          (value, "\(HandleRepository.searchCacheKey):\(value)")
+        } else {
+          nil
+        }
+      }
     for (key, cacheKey) in searched {
       if try await app.redis.exists(.init(cacheKey)) > 0 {
         try await app.cache.delete(cacheKey)

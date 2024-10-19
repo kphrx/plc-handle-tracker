@@ -31,9 +31,7 @@ struct PollingPlcServerExportJob: AsyncJob {
     let exportedLog = try await getExportedLog(app, after: payload.after, count: payload.count)
     for tree in try exportedLog.treeSort() {
       try await app.queues.queue.dispatch(
-        ImportExportedLogJob.self,
-        .init(ops: tree, historyId: payload.historyId)
-      )
+        ImportExportedLogJob.self, .init(ops: tree, historyId: payload.historyId))
     }
     try await self.log(to: payload.historyId, lastOp: exportedLog.last, on: app.db)
   }
@@ -62,17 +60,15 @@ struct PollingPlcServerExportJob: AsyncJob {
   {
     var url: URI = "https://plc.directory/export"
     url.query =
-      if let after = after.map({ date in
-        return date.formatted(Date.ISO8601FormatStyle(includingFractionalSeconds: true))
-      }) {
-        "count=\(count)&after=\(after)"
+      if let after {
+        "count=\(count)&after=\(after.formatted(Date.ISO8601FormatStyle(includingFractionalSeconds: true)))"
       } else {
         "count=\(count)"
       }
     let response = try await client.get(url)
     let textDecoder = try ContentConfiguration.global.requireDecoder(for: .plainText)
-    let jsonLines = try response.content.decode(String.self, using: textDecoder).split(
-      separator: "\n")
+    let jsonLines = try response.content.decode(String.self, using: textDecoder)
+      .split(separator: "\n")
     if count <= 1000 || jsonLines.count < 1000 {
       return jsonLines
     }

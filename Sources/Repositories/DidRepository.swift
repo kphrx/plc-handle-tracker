@@ -91,7 +91,7 @@ struct DidRepository {
   }
 
   func createIfNoxExists(_ did: String) async throws {
-    if !Did.validate(did: did) {
+    guard Did.validate(did: did) else {
       throw "Invalid DID Placeholder"
     }
     if try await Did.find(did, on: self.db) != nil {
@@ -146,12 +146,12 @@ extension DidRepository {
   func ban(_ dids: String, error err: OpParseError) async throws {
     let reason: BanReason =
       switch err {
-      case .invalidHandle:
-        .invalidHandle
-      case .unknownPreviousOp:
-        .missingHistory
-      default:
-        .incompatibleAtproto
+        case .invalidHandle:
+          .invalidHandle
+        case .unknownPreviousOp:
+          .missingHistory
+        default:
+          .incompatibleAtproto
       }
     try await self.ban(dids, reason: reason)
   }

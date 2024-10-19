@@ -19,18 +19,18 @@ enum DidSearchResult {
 
   var message: String? {
     switch self {
-    case .notFound(let did): "Not found: \(did)"
-    case .invalidFormat(let did): "Invalid DID format: \(did)"
-    default: nil
+      case .notFound(let did): "Not found: \(did)"
+      case .invalidFormat(let did): "Invalid DID format: \(did)"
+      default: nil
     }
   }
 
   var status: HTTPResponseStatus {
     switch self {
-    case .notFound: .notFound
-    case .invalidFormat: .badRequest
-    case .redirect: .movedPermanently
-    case .none: .ok
+      case .notFound: .notFound
+      case .invalidFormat: .badRequest
+      case .redirect: .movedPermanently
+      case .none: .ok
     }
   }
 }
@@ -82,9 +82,7 @@ struct DidController: RouteCollection {
   func boot(routes: RoutesBuilder) throws {
     let dids = routes.grouped("did")
     dids.get(use: index)
-    dids.group(":did") { did in
-      did.get(use: show)
-    }
+    dids.group(":did") { $0.get(use: show) }
   }
 
   func index(req: Request) async throws -> ViewOrRedirect {
@@ -125,7 +123,7 @@ struct DidController: RouteCollection {
     guard let did = req.parameters.get("did") else {
       throw Abort(.internalServerError)
     }
-    if !Did.validate(did: did) {
+    guard Did.validate(did: did) else {
       throw Abort(.badRequest, reason: "Invalid DID format")
     }
     guard let didPlc = try await req.didRepository.findOrFetch(did) else {
@@ -141,15 +139,17 @@ struct DidController: RouteCollection {
       throw Abort(.internalServerError, reason: "Broken operation tree")
     }
     let updateHandleOps = try await withThrowingTaskGroup(
-      of: (Int, DidShowContext.UpdateHandleOp).self
+      of: (idx: Int, op: DidShowContext.UpdateHandleOp).self
     ) {
       let updateHandleOps = try operations.onlyUpdateHandle()
       for (i, op) in updateHandleOps.enumerated() {
         $0.addTask { try await (i, .init(op: op, on: req.db)) }
       }
-      return try await $0.reduce(into: Array(repeating: nil, count: updateHandleOps.count)) {
-        $0[$1.0] = $1.1
-      }.compactMap { $0 }
+      return
+        try await $0.reduce(into: Array(repeating: nil, count: updateHandleOps.count)) {
+          $0[$1.idx] = $1.op
+        }
+        .compactMap { $0 }
     }
     return try await req.view.render(
       "did/show",

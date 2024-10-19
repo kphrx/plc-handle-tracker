@@ -7,7 +7,7 @@ struct FetchDidJob: AsyncJob {
   typealias Payload = String
 
   func dequeue(_ context: QueueContext, _ payload: Payload) async throws {
-    if !Did.validate(did: payload) {
+    guard Did.validate(did: payload) else {
       throw "Invalid DID Placeholder"
     }
     let app = context.application

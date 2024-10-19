@@ -19,7 +19,8 @@ struct PollingJobNotificationHook: AsyncJobEventDelegate {
     try await PollingJobStatus(
       id: jobId, historyId: payload.historyId, did: payload.ops.first.map { $0.did },
       dispatchTimestamp: job.queuedAt
-    ).create(on: self.database)
+    )
+    .create(on: self.database)
   }
 
   func didDequeue(jobId: String) async throws {

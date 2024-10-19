@@ -9,34 +9,39 @@ on:
   pull_request:
     branches: [ "master" ]
 
-env:
-  SWIFT_VERSION: '5.10'
-  SWIFT_FORMAT_VERSION: '510.1.0'
-
 jobs:
-  install-swift-format:
-
+  versions:
     runs-on: ubuntu-latest
+    outputs:
+      swift-image: ${{ steps.swift-image.outputs.version }}
+      swift-format: ${{ steps.swift-format.outputs.version }}
+    steps:
+      - name: swift 
+        id: swift-image
+        run: echo "version=6.0-noble" >> $GITHUB_OUTPUT
+      - name: swift-format
+        id: swift-format
+        run: echo "version=600.0.0" >> $GITHUB_OUTPUT
+
+  install-swift-format:
+    needs: versions
+    runs-on: ubuntu-latest
+    container: swift:${{ needs.versions.outputs.swift-image }}
 
     steps:
-    - name: Set up Swift
-      uses: swift-actions/setup-swift@v2
-      with:
-        swift-version: ${{ env.SWIFT_VERSION }}
-
     - name: Restore build cache
       uses: actions/cache@v4
       id: cache
       with:
         path: ./vendor/swift-format/.build
-        key: ${{ runner.os }}-swift-format-${{ env.SWIFT_FORMAT_VERSION }}
+        key: ${{ runner.os }}-swift-format-${{ needs.versions.outputs.swift-format }}
 
     - name: Checkout apple/swift-format
       if: steps.cache.outputs.cache-hit != 'true'
       uses: actions/checkout@v4
       with:
         repository: apple/swift-format
-        ref: ${{ env.SWIFT_FORMAT_VERSION }}
+        ref: ${{ needs.versions.outputs.swift-format }}
         path: vendor/swift-format
 
     - name: Build swift-format
@@ -49,9 +54,12 @@ jobs:
 
 
   lint:
-
-    needs: install-swift-format
+    needs: [versions, install-swift-format]
     runs-on: ubuntu-latest
+    container:
+      image: swift:${{ needs.versions.outputs.swift-image }}
+      volumes:
+        - /usr/bin/curl:/usr/bin/curl
     permissions:
       contents: read
       pull-requests: write
@@ -59,16 +67,13 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up Swift
-      uses: swift-actions/setup-swift@v2
-      with:
-        swift-version: ${{ env.SWIFT_VERSION }}
+    - run: git config --global --add safe.directory "${{ github.workspace }}"
 
     - name: Restore build cache
       uses: actions/cache@v4
       with:
         path: ./vendor/swift-format/.build
-        key: ${{ runner.os }}-swift-format-${{ env.SWIFT_FORMAT_VERSION }}
+        key: ${{ runner.os }}-swift-format-${{ needs.versions.outputs.swift-format }}
 
     - name: Install swift-format
       run: |
@@ -97,10 +102,13 @@ jobs:
 
 
   format:
-
-    if: github.event_name == 'pull_request'
-    needs: install-swift-format
+    needs: [versions, install-swift-format]
     runs-on: ubuntu-latest
+    container:
+      image: swift:${{ needs.versions.outputs.swift-image }}
+      volumes:
+        - /usr/bin/curl:/usr/bin/curl
+    if: github.event_name == 'pull_request'
     permissions:
       contents: read
       pull-requests: write
@@ -108,16 +116,13 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up Swift
-      uses: swift-actions/setup-swift@v2
-      with:
-        swift-version: ${{ env.SWIFT_VERSION }}
+    - run: git config --global --add safe.directory "${GITHUB_WORKSPACE}"
 
     - name: Restore build cache
       uses: actions/cache@v4
       with:
         path: ./vendor/swift-format/.build
-        key: ${{ runner.os }}-swift-format-${{ env.SWIFT_FORMAT_VERSION }}
+        key: ${{ runner.os }}-swift-format-${{ needs.versions.outputs.swift-format }}
 
     - name: Install swift-format
       run: |

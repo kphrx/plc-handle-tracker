@@ -55,8 +55,8 @@ final class Operation: Model, Content, @unchecked Sendable {
   init() {}
 
   init(
-    cid: String, did: String, nullified: Bool, createdAt: Date,
-    prev: Operation? = nil, handle: Handle? = nil, pds: PersonalDataServer? = nil
+    cid: String, did: String, nullified: Bool, createdAt: Date, prev: Operation? = nil,
+    handle: Handle? = nil, pds: PersonalDataServer? = nil
   ) throws {
     self.id = .init(cid: cid, did: did)
     self.nullified = nullified
@@ -68,9 +68,7 @@ final class Operation: Model, Content, @unchecked Sendable {
     self.$pds.id = try pds?.requireID()
   }
 
-  init(
-    cid: String, did: String, nullified: Bool, createdAt: Date
-  ) throws {
+  init(cid: String, did: String, nullified: Bool, createdAt: Date) throws {
     self.id = .init(cid: cid, did: did)
     self.nullified = nullified
     self.createdAt = createdAt
@@ -117,30 +115,30 @@ extension Operation {
       cid: exportedOp.cid, did: exportedOp.did, nullified: exportedOp.nullified,
       createdAt: exportedOp.createdAt)
     switch exportedOp.operation {
-    case .create(let createOp):
-      _ = try await (
-        self.resolveDid(on: app.didRepository),
-        self.resolve(handle: createOp.handle, on: app.handleRepository),
-        self.resolve(serviceEndpoint: createOp.service, on: app.db)
-      )
-    case .plcOperation(let plcOp):
-      guard
-        let handleString = plcOp.alsoKnownAs.first(where: { $0.hasPrefix("at://") })?
-          .replacingOccurrences(of: "at://", with: "")
-      else {
-        throw OpParseError.notFoundAtprotoHandle
-      }
-      _ = try await (
-        self.resolve(handle: handleString, on: app.handleRepository),
-        self.resolve(serviceEndpoint: plcOp.services.atprotoPds.endpoint, on: app.db),
-        self.resolve(prevOp: prevOp, prevCid: plcOp.prev, app: app)
-      )
-    case .plcTombstone(let tombstoneOp):
-      if let prevOp {
-        try self.resolve(prev: prevOp)
-      } else {
-        try await self.resolve(prev: tombstoneOp.prev, on: app.db)
-      }
+      case .create(let createOp):
+        _ = try await (
+          self.resolveDid(on: app.didRepository),
+          self.resolve(handle: createOp.handle, on: app.handleRepository),
+          self.resolve(serviceEndpoint: createOp.service, on: app.db)
+        )
+      case .plcOperation(let plcOp):
+        guard
+          let handleString = plcOp.alsoKnownAs.first(where: { $0.hasPrefix("at://") })?
+            .replacingOccurrences(of: "at://", with: "")
+        else {
+          throw OpParseError.notFoundAtprotoHandle
+        }
+        _ = try await (
+          self.resolve(handle: handleString, on: app.handleRepository),
+          self.resolve(serviceEndpoint: plcOp.services.atprotoPds.endpoint, on: app.db),
+          self.resolve(prevOp: prevOp, prevCid: plcOp.prev, app: app)
+        )
+      case .plcTombstone(let tombstoneOp):
+        if let prevOp {
+          try self.resolve(prev: prevOp)
+        } else {
+          try await self.resolve(prev: tombstoneOp.prev, on: app.db)
+        }
     }
   }
 
