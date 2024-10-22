@@ -10,7 +10,33 @@ updates:
     schedule:
       interval: "weekly"
     groups:
-      dependencies:
+      swift-minor-fluent:
+        update-types:
+          - "patch"
+          - "minor"
+        patterns:
+          - "gtihub.com/vapor/fluent*"
+      swift-minor-queues:
+        update-types:
+          - "patch"
+          - "minor"
+        patterns:
+          - "gtihub.com/vapor/queues*"
+      swift-minor-vapor:
+        update-types:
+          - "patch"
+          - "minor"
+        patterns:
+          - "gtihub.com/vapor/*"
+      swift-minor:
+        update-types:
+          - "patch"
+          - "minor"
+        patterns:
+          - "*"
+      swift-major:
+        update-types:
+          - "major"
         patterns:
           - "*"
 
