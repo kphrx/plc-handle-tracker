@@ -6,7 +6,7 @@ struct MergeBannedDidsTableToDidsTable: AsyncMigration {
     try await database.transaction { transaction in
       let banReason = try await transaction.enum("ban_reason").read()
       try await transaction.schema("dids")
-        .field("banned", .bool, .required, .custom("DEFAULT false"))
+        .field("banned", .bool, .required, .sql(.default(false)))
         .field("reason", banReason)
         .update()
       guard let sql = transaction as? SQLDatabase else {
