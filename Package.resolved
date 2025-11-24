@@ -1,5 +1,5 @@
 {
-  "originHash" : "3a1d71602810daa509cff82a1dff245741d8f5c35a16d6a1dd7bb48ece6e3ecd",
+  "originHash" : "3c998e1ad931be3a8177a98ee43f8da8342af4398e5c45f20a7c48c021d7c5ad",
   "pins" : [
     {
       "identity" : "async-http-client",
@@ -26,6 +26,15 @@
       "state" : {
         "revision" : "78c0dd739df8cb9ee14a8bbbf770facc4fc3402a",
         "version" : "4.15.0"
+      }
+    },
+    {
+      "identity" : "cryptoswift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/krzyzanowskim/CryptoSwift.git",
+      "state" : {
+        "revision" : "729e01bc9b9dab466ac85f21fb9ee2bc1c61b258",
+        "version" : "1.8.4"
       }
     },
     {
@@ -191,6 +200,24 @@
       }
     },
     {
+      "identity" : "swift-bases",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swift-libp2p/swift-bases.git",
+      "state" : {
+        "revision" : "b5fb3260b0a2020d17700fbf496e4f9bba5e673e",
+        "version" : "0.0.4"
+      }
+    },
+    {
+      "identity" : "swift-cid",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swift-libp2p/swift-cid.git",
+      "state" : {
+        "revision" : "8af5d9de451ceaf45a42e9d6784054d8f5fa3544",
+        "version" : "0.0.4"
+      }
+    },
+    {
       "identity" : "swift-collections",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/apple/swift-collections.git",
@@ -233,6 +260,33 @@
       "state" : {
         "revision" : "e0165b53d49b413dd987526b641e05e246782685",
         "version" : "2.5.0"
+      }
+    },
+    {
+      "identity" : "swift-multibase",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swift-libp2p/swift-multibase.git",
+      "state" : {
+        "revision" : "41f436aa7389481bc01ee0cd032b422acd1ffd16",
+        "version" : "0.0.3"
+      }
+    },
+    {
+      "identity" : "swift-multicodec",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swift-libp2p/swift-multicodec.git",
+      "state" : {
+        "revision" : "bcc70e2debd98348546133abb50270e13b3da87d",
+        "version" : "0.0.8"
+      }
+    },
+    {
+      "identity" : "swift-multihash",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swift-libp2p/swift-multihash.git",
+      "state" : {
+        "revision" : "7ea5a9866bd341601fa61647d521880944139353",
+        "version" : "0.0.4"
       }
     },
     {
@@ -305,6 +359,15 @@
       "state" : {
         "revision" : "c8a44d836fe7913603e246acab7c528c2e780168",
         "version" : "1.4.0"
+      }
+    },
+    {
+      "identity" : "swift-varint",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swift-libp2p/swift-varint.git",
+      "state" : {
+        "revision" : "1ea4cd2ea5f1c74527600de659f0805d2e12fa6b",
+        "version" : "0.0.2"
       }
     },
     {

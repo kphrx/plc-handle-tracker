@@ -15,6 +15,8 @@ let package = Package(
     .package(url: "https://github.com/vapor/queues.git", from: "1.15.0"),
     .package(url: "https://github.com/vapor/queues-redis-driver.git", from: "1.0.0"),
     .package(url: "https://github.com/vapor/leaf.git", from: "4.0.0"),
+    .package(url: "https://github.com/swift-libp2p/swift-bases.git", from: "0.0.4"),
+    .package(url: "https://github.com/swift-libp2p/swift-cid.git", from: "0.0.4"),
   ],
   targets: [
     // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -27,6 +29,8 @@ let package = Package(
         .product(name: "QueuesRedisDriver", package: "queues-redis-driver"),
         .product(name: "Leaf", package: "leaf"),
         .product(name: "Vapor", package: "vapor"),
+        .product(name: "Base32", package: "swift-bases"),
+        .product(name: "CID", package: "swift-cid"),
       ],
       path: "Sources",
       swiftSettings: [
