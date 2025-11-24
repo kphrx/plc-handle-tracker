@@ -38,7 +38,7 @@ jobs:
 
     - name: Checkout apple/swift-format
       if: steps.cache.outputs.cache-hit != 'true'
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         repository: apple/swift-format
         ref: ${{ needs.versions.outputs.swift-format }}
@@ -65,7 +65,7 @@ jobs:
       pull-requests: write
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - run: git config --global --add safe.directory "${{ github.workspace }}"
 
@@ -114,7 +114,7 @@ jobs:
       pull-requests: write
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - run: git config --global --add safe.directory "${GITHUB_WORKSPACE}"
 
