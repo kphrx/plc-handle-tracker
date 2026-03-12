@@ -30,7 +30,7 @@ jobs:
 
     steps:
     - name: Restore build cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       id: cache
       with:
         path: ./vendor/swift-format/.build
@@ -70,7 +70,7 @@ jobs:
     - run: git config --global --add safe.directory "${{ github.workspace }}"
 
     - name: Restore build cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ./vendor/swift-format/.build
         key: ${{ runner.os }}-swift-format-${{ needs.versions.outputs.swift-format }}
@@ -119,7 +119,7 @@ jobs:
     - run: git config --global --add safe.directory "${GITHUB_WORKSPACE}"
 
     - name: Restore build cache
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ./vendor/swift-format/.build
         key: ${{ runner.os }}-swift-format-${{ needs.versions.outputs.swift-format }}
