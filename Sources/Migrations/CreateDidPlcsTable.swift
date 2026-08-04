@@ -1,11 +1,15 @@
 import Fluent
+import FluentSQL
 
 struct CreateDidPlcsTable: AsyncMigration {
   func prepare(on database: Database) async throws {
     try await database.transaction { transaction in
       let banReason = try await transaction.enum("ban_reason").read()
       try await transaction.schema("did_plcs")
-        .field("id", .custom("BIT(120)"), .identifier(auto: false))
+        .field(
+          "id", .custom("BYTEA"), .identifier(auto: false),
+          .sql(.check(SQLRaw("octet_length(id) = 15")))
+        )
         .field("banned", .bool, .required, .sql(.default(false)))
         .field("reason", banReason)
         .create()
